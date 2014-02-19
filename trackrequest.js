@@ -6,8 +6,8 @@ var afftracker_setter = {
    *
    * @private
    */
-  commtrack_amazon: {},
-  commtrack_hostgator: {},
+  afftracker_amazon: {},
+  afftracker_hostgator: {},
 
   /**
    * Parses out Amazon affiliate ID.
@@ -47,14 +47,14 @@ var afftracker_setter = {
           if (header.value.substring(0, 9) === "UserPref=") {
             // Amazon's affiliate id does not show up in the Cookie.
             aff_id = afftracker_setter.parse_amazon_aff_id(details.url);
-            afftracker_setter.commtrack_amazon["cookie"] = header.value;
-            afftracker_setter.commtrack_amazon["aff_id"] = aff_id;
-            afftracker_setter.commtrack_amazon["type"] = details.type;
-            afftracker_setter.commtrack_amazon["timestamp"] = details.timeStamp;
+            afftracker_setter.afftracker_amazon["cookie"] = header.value;
+            afftracker_setter.afftracker_amazon["aff_id"] = aff_id;
+            afftracker_setter.afftracker_amazon["type"] = details.type;
+            afftracker_setter.afftracker_amazon["timestamp"] = details.timeStamp;
             chrome.storage.sync.set(
-              {'commtrack_amazon': afftracker_setter.commtrack_amazon},
+              {'afftracker_amazon': afftracker_setter.afftracker_amazon},
               function() {});
-            afftracker_setter.commtrack_amazon = null;
+            afftracker_setter.afftracker_amazon = null;
           }
         }
       });
@@ -65,14 +65,14 @@ var afftracker_setter = {
             // Split cookie value on semi-colon, take the first break
             // remove numbernumber. from beginning, keep the rest as aff.
             var aff_id = header.value.split(";", 1)[0].split(".")[1];
-            afftracker_setter.commtrack_hostgator["cookie"] = header.value;
-            afftracker_setter.commtrack_hostgator["aff_id"] = aff_id;
-            afftracker_setter.commtrack_hostgator["type"] = details.type;
-            afftracker_setter.commtrack_hostgator["timestamp"] = details.timeStamp;
+            afftracker_setter.afftracker_hostgator["cookie"] = header.value;
+            afftracker_setter.afftracker_hostgator["aff_id"] = aff_id;
+            afftracker_setter.afftracker_hostgator["type"] = details.type;
+            afftracker_setter.afftracker_hostgator["timestamp"] = details.timeStamp;
             chrome.storage.sync.set(
-              {"commtrack_hostgator": afftracker_setter.commtrack_hostgator},
+              {"afftracker_hostgator": afftracker_setter.afftracker_hostgator},
               function() {});
-            afftracker_setter.commtrack_hostgator = null;
+            afftracker_setter.afftracker_hostgator = null;
           }
         }
       });
@@ -90,9 +90,9 @@ var afftracker_setter = {
     if (details.url.indexOf("http://secure.hostgator.com") === 0) {
       details.requestHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "referer") {
-          afftracker_setter.commtrack_hostgator["referer"] = header.value;
+          afftracker_setter.afftracker_hostgator["referer"] = header.value;
           chrome.tabs.get(details.tabId, function(tab) {
-            afftracker_setter.commtrack_hostgator["site"] = tab.url;
+            afftracker_setter.afftracker_hostgator["site"] = tab.url;
           });
         }
       });
@@ -102,9 +102,9 @@ var afftracker_setter = {
         // Ignore amazon redirects to itself.
         if (header.name.toLowerCase() === "referer" &&
             header.value.indexOf("amazon.com") === -1) {
-          afftracker_setter.commtrack_amazon["referer"] = header.value;
+          afftracker_setter.afftracker_amazon["referer"] = header.value;
           chrome.tabs.get(details.tabId, function(tab) {
-            afftracker_setter.commtrack_amazon["site"] = tab.url;
+            afftracker_setter.afftracker_amazon["site"] = tab.url;
           });
         }
       });

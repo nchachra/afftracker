@@ -27,7 +27,7 @@ var afftracker_loader = {
     var divEl = document.getElementById("merchant-info");
     this.merchants.forEach(function(merchant, index) {
       var tableEl = document.createElement('table');
-      var store_key = "commtrack_" + merchant;
+      var store_key = "afftracker_" + merchant;
 
       // Every table's first cell is the icon img.
       var icon_img = document.createElement('img');

@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+
+  "name": "AffTracker",
+  "description": "Keeps track of affiliate cookies.",
+  "version": "1.0",
+
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.html",
+    "default_title": "Track Affiliates"
+  },
+
+  "background": {
+    "scripts": ["trackrequest.js"],
+    "persistent": true
+  },
+
+  "permissions": [
+    "http://*.amazon.com/*",
+    "http://*.hostgator.com/*",
+    "webRequest",
+    "tabs",
+    "storage",
+    "cookies"
+  ]
+}

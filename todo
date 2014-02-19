@@ -1,0 +1,6 @@
+* Unicode? All string operations may be ASCII only. Check.
+* Save dump to file.
+* Maybe post request so we can gather data.
+* Match current cookie value with that displayed.
+* Switch background to event pages, this is not cool bro
+* add more merchants

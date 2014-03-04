@@ -72,10 +72,7 @@ var afftracker_loader = {
         }
         chrome.cookies.get({"url": "http://www." + merchant + '.com/',
                             "name": cookie_name}, function(cookie) {
-          console.log(cookie);
-          console.log(store_info);
           if (store_info && cookie && cookie.value === store_info.cookie) {
-            console.log("in hier");
             document.getElementById(merchant + "-aff").innerHTML = store_info.aff_id;
             document.getElementById(merchant + "-time").innerHTML =
                 new Date(store_info.timestamp).toString();

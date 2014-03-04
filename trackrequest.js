@@ -1,5 +1,3 @@
-
-
 var afftracker_setter = {
   /**
    * Holds the state for merchant until it is saved in storage.
@@ -18,7 +16,7 @@ var afftracker_setter = {
    */
   parse_amazon_aff_id: function(url) {
     var args = url.substring(url.lastIndexOf("/") + 1);
-    if (args.indexOf("&") != -1 && args.indexOf("?") != -1) {
+    if (args.indexOf("&") === -1 && args.indexOf("?") === -1) {
       // When a UserPref cookie is received in these cases,
       // the affiliate parameter is the last bit after the /
       return args;
@@ -52,7 +50,6 @@ var afftracker_setter = {
             var cookie = header.value;
             var user_pref_ck = cookie.substring(cookie.indexOf("UserPref=") + 9,
                 cookie.indexOf(';'));
-            console.log(user_pref_ck);
             afftracker_setter.afftracker_amazon["cookie"] = user_pref_ck;
             afftracker_setter.afftracker_amazon["aff_id"] = aff_id;
             afftracker_setter.afftracker_amazon["type"] = details.type;
@@ -60,7 +57,7 @@ var afftracker_setter = {
             chrome.storage.sync.set(
               {'afftracker_amazon': afftracker_setter.afftracker_amazon},
               function() {});
-            afftracker_setter.afftracker_amazon = null;
+            afftracker_setter.afftracker_amazon = {};
           }
         }
       });
@@ -81,7 +78,7 @@ var afftracker_setter = {
             chrome.storage.sync.set(
               {"afftracker_hostgator": afftracker_setter.afftracker_hostgator},
               function() {});
-            afftracker_setter.afftracker_hostgator = null;
+            afftracker_setter.afftracker_hostgator = {};
           }
         }
       });
@@ -97,6 +94,7 @@ var afftracker_setter = {
    */
   request_callback: function(details) {
     if (details.url.indexOf("http://secure.hostgator.com") === 0) {
+      afftracker_setter.afftracker_hostgator = {};
       details.requestHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "referer") {
           afftracker_setter.afftracker_hostgator["referer"] = header.value;
@@ -107,6 +105,7 @@ var afftracker_setter = {
       });
     }
     if (details.url.indexOf("amazon.com") !== -1) {
+      afftracker_setter.afftracker_amazon = {};
       details.requestHeaders.forEach(function(header) {
         // Ignore amazon redirects to itself.
         if (header.name.toLowerCase() === "referer" &&
@@ -122,6 +121,10 @@ var afftracker_setter = {
 };
 
 
+
+// There is an inherent assumption that onSendHeaders is fired before
+//   onHeadersReceived. We're talking networks here, so it would be odd if
+//   this assumption is violated.
 /**
  * Analyze all responses. While the filter allows all URLs here, the manifest
  * restricts analysis to only merchant URLs.

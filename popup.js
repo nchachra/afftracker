@@ -64,13 +64,26 @@ var afftracker_loader = {
 
       chrome.storage.sync.get(store_key, function(result) {
         var store_info = result[store_key];
-        if (store_info) {
-          document.getElementById(merchant + "-aff").innerHTML = store_info.aff_id;
-          document.getElementById(merchant + "-time").innerHTML = new Date(store_info.timestamp).toString();
-          document.getElementById(merchant + "-rsc-type").innerHTML = store_info.type;
-          document.getElementById(merchant + "-referer").innerHTML = store_info.referer;
-          document.getElementById(merchant + "-site").innerHTML = store_info.site;
+        var cookie_name = '';
+        if (merchant === 'amazon') {
+          cookie_name = 'UserPref';
+        } else if (merchant == 'hostgator') {
+          cookie_name = 'GatorAffiliate';
         }
+        chrome.cookies.get({"url": "http://www." + merchant + '.com/',
+                            "name": cookie_name}, function(cookie) {
+          console.log(cookie);
+          console.log(store_info);
+          if (store_info && cookie && cookie.value === store_info.cookie) {
+            console.log("in hier");
+            document.getElementById(merchant + "-aff").innerHTML = store_info.aff_id;
+            document.getElementById(merchant + "-time").innerHTML =
+                new Date(store_info.timestamp).toString();
+            document.getElementById(merchant + "-rsc-type").innerHTML = store_info.type;
+            document.getElementById(merchant + "-referer").innerHTML = store_info.referer;
+            document.getElementById(merchant + "-site").innerHTML = store_info.site;
+          }
+        });
       });
     });
   }

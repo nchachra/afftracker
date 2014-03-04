@@ -17,20 +17,22 @@ var afftracker_setter = {
    * @private
    */
   parse_amazon_aff_id: function(url) {
-    args = url.substring(url.lastIndexOf("/") + 1);
-    if (args.indexOf("&tag=") != -1) {
-      args = args.substring(args.indexOf("&tag=") + 5);
-    } else if (args.indexOf("?tag=") != -1) {
-      args = args.substring(args.indexOf("?tag=") + 5);
-    };
+    var args = url.substring(url.lastIndexOf("/") + 1);
+    if (args.indexOf("&") != -1 && args.indexOf("?") != -1) {
+      // When a UserPref cookie is received in these cases,
+      // the affiliate parameter is the last bit after the /
+      return args;
+    }
 
-    if (args.indexOf("&") != -1) {
-      args = args.substring(0, args.indexOf("&"));
-    };
-
-    // When tag isn't explicitly specified, it's the entire string after
-    // the last slash as far as I know.
-    return args;
+    if (args.indexOf("tag=") != -1) {
+      var tag_index = args.indexOf("tag=");
+      args = args.substring(tag_index + 4);
+      if (args.indexOf("&") != -1) {
+        return args.substring(0, args.indexOf("&"));
+      } else {
+        return args;
+      }
+    }
   },
 
   /**
@@ -46,8 +48,12 @@ var afftracker_setter = {
         if (header.name.toLowerCase() === "set-cookie") {
           if (header.value.substring(0, 9) === "UserPref=") {
             // Amazon's affiliate id does not show up in the Cookie.
-            aff_id = afftracker_setter.parse_amazon_aff_id(details.url);
-            afftracker_setter.afftracker_amazon["cookie"] = header.value;
+            var aff_id = afftracker_setter.parse_amazon_aff_id(details.url);
+            var cookie = header.value;
+            var user_pref_ck = cookie.substring(cookie.indexOf("UserPref=") + 9,
+                cookie.indexOf(';'));
+            console.log(user_pref_ck);
+            afftracker_setter.afftracker_amazon["cookie"] = user_pref_ck;
             afftracker_setter.afftracker_amazon["aff_id"] = aff_id;
             afftracker_setter.afftracker_amazon["type"] = details.type;
             afftracker_setter.afftracker_amazon["timestamp"] = details.timeStamp;
@@ -65,7 +71,10 @@ var afftracker_setter = {
             // Split cookie value on semi-colon, take the first break
             // remove numbernumber. from beginning, keep the rest as aff.
             var aff_id = header.value.split(";", 1)[0].split(".")[1];
-            afftracker_setter.afftracker_hostgator["cookie"] = header.value;
+            var cookie = header.value;
+            var aff_cookie = cookie.substring(cookie.substring("GatorAffiliate=") + 15,
+                cookie.indexOf(";"));
+            afftracker_setter.afftracker_hostgator["cookie"] = aff_cookie;
             afftracker_setter.afftracker_hostgator["aff_id"] = aff_id;
             afftracker_setter.afftracker_hostgator["type"] = details.type;
             afftracker_setter.afftracker_hostgator["timestamp"] = details.timeStamp;
@@ -118,7 +127,9 @@ var afftracker_setter = {
  * restricts analysis to only merchant URLs.
  */
 chrome.webRequest.onHeadersReceived.addListener(
-    afftracker_setter.response_callback, {urls: ["<all_urls>"]}, ["responseHeaders"]);
+    afftracker_setter.response_callback, {urls: ["<all_urls>"]},
+    ["responseHeaders"]);
 
 chrome.webRequest.onSendHeaders.addListener(
-    afftracker_setter.request_callback, {urls: ["<all_urls>"]}, ["requestHeaders"]);
+    afftracker_setter.request_callback, {urls: ["<all_urls>"]},
+    ["requestHeaders"]);

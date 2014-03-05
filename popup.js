@@ -65,13 +65,16 @@ var afftracker_loader = {
       chrome.storage.sync.get(store_key, function(result) {
         var store_info = result[store_key];
         var cookie_name = '';
+        var cookie_url = '';
         if (merchant === 'amazon') {
           cookie_name = 'UserPref';
+          cookie_url = "http://www.amazon.com";
         } else if (merchant == 'hostgator') {
           cookie_name = 'GatorAffiliate';
+          cookie_url = "http://tracking.hostgator.com";
         }
-        chrome.cookies.get({"url": "http://www." + merchant + '.com/',
-                            "name": cookie_name}, function(cookie) {
+        chrome.cookies.get({"url": cookie_url, "name": cookie_name},
+            function(cookie) {
           if (store_info && cookie && cookie.value === store_info.cookie) {
             document.getElementById(merchant + "-aff").innerHTML = store_info.aff_id;
             document.getElementById(merchant + "-time").innerHTML =

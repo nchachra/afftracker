@@ -45,8 +45,6 @@ var afftracker_setter = {
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
-          console.log('in received headers');
-          console.log(details);
           if (header.value.substring(0, 9) === "UserPref=") {
             // Amazon's affiliate id does not show up in the Cookie.
             var aff_id = afftracker_setter.parse_amazon_aff_id(details.url);
@@ -73,8 +71,9 @@ var afftracker_setter = {
             // remove numbernumber. from beginning, keep the rest as aff.
             var aff_id = header.value.split(";", 1)[0].split(".")[1];
             var cookie = header.value;
-            var aff_cookie = cookie.substring(cookie.substring("GatorAffiliate=") + 15,
+            var aff_cookie = cookie.substring(cookie.indexOf("GatorAffiliate=") + 15,
                 cookie.indexOf(";"));
+            console.log("storing gator cookie value : " + aff_cookie);
             afftracker_setter.afftracker_hostgator["cookie"] = aff_cookie;
             afftracker_setter.afftracker_hostgator["aff_id"] = aff_id;
             afftracker_setter.afftracker_hostgator["type"] = details.type;
@@ -82,6 +81,8 @@ var afftracker_setter = {
             chrome.storage.sync.set(
               {"afftracker_hostgator": afftracker_setter.afftracker_hostgator},
               function() {});
+            console.log("setting hostgator: ");
+            console.log(afftracker_setter.afftracker_hostgator);
             afftracker_setter.afftracker_hostgator = {};
           }
         }

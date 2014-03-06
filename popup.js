@@ -15,8 +15,11 @@ var afftracker_loader = {
   specs: {"aff": "Affiliate:",
           "time": "Set at: ",
           "rsc-type": "Rendered as:",
+          "origin" : "Origin Tab URL: ",
+          "origin_frame" : "Origin Frame URL: ",
           "referer": "Referrer:",
-          "site": "Visited: "},
+          "landing": "Landing URL: ",
+          "new_tab": "New Tab? "},
 
   /**
    * Pulls the stored values from storage and populates the DOM.
@@ -33,7 +36,7 @@ var afftracker_loader = {
       var icon_img = document.createElement('img');
       icon_img.src = "icons/" + merchant + "_icon.png";
       var icon_cell = document.createElement('td');
-      icon_cell.setAttribute('rowspan', 5);
+      icon_cell.setAttribute('rowspan', 8);
       icon_cell.appendChild(icon_img);
 
       var icon_set = false;
@@ -81,7 +84,10 @@ var afftracker_loader = {
                 new Date(store_info.timestamp).toString();
             document.getElementById(merchant + "-rsc-type").innerHTML = store_info.type;
             document.getElementById(merchant + "-referer").innerHTML = store_info.referer;
-            document.getElementById(merchant + "-site").innerHTML = store_info.site;
+            document.getElementById(merchant + "-landing").innerHTML = store_info.landing;
+            document.getElementById(merchant + "-origin").innerHTML = store_info.origin;
+            document.getElementById(merchant + "-new_tab").innerHTML = store_info.new_tab;
+            document.getElementById(merchant + "-origin_frame").innerHTML = store_info.origin_frame;
           }
         });
       });

@@ -1,15 +1,40 @@
 var afftracker_setter = {
+
+
   /**
-   * Holds the state for merchant until it is saved in storage.
+   * We need notification ID to control when it should be hidden.
    *
    * @private
    */
-  amazon: {},
-  hostgator: {},
-  notification_counter: 0,
+  notification_id: "AffiliateTracker_notif",
 
+  /**
+   * Regex to pull out the amazon site name. We call this merchant site.
+   *
+   * @private
+   */
   amazon_regex: /(amazon\.(com|de|at|ca|cn|fr|it|co\.jp|es|co\.uk))|(joyo\.com)|(amazonsupply\.com)|(javari\.(co\.uk|de|fr|jp))|(buyvip\.com)/i,
 
+  /**
+   * User ID key. True across all extensions.
+   *
+   * @private
+   */
+  user_id_key: "AffiliateTracker_userId",
+
+  /**
+   * Generate user ID for this user. Takes a hash of a random number
+   * concatenated with the timestamp. We only generate a user id if
+   * one doesn't exist already.
+   *
+   * @return {string} UserId object {key:value}
+   */
+  generateUserId: function() {
+    var user_id = new String(Math.floor(Math.random()*10+1)) + new String(new Date().getTime());
+    var storage_obj = {};
+    storage_obj[this.user_id_key] = CryptoJS.MD5(user_id).toString(CryptoJS.enc.Base64);
+    return storage_obj;
+  },
 
   /**
    * Parses out affiliate ID.
@@ -19,10 +44,8 @@ var afftracker_setter = {
    * @return {string} Affiliate's ID.
    * @private
    */
-  parse_aff_id: function(merchant, arg) {
-    switch (merchant) {
-
-      case "amazon":
+  parseAffiliateId: function(merchant, arg) {
+      if (amazon_sites.indexOf(merchant) !== -1) {
         // Treat arg as URL.
         var url = arg;
         var args = url.substring(url.lastIndexOf("/") + 1);
@@ -40,8 +63,7 @@ var afftracker_setter = {
             return args;
           }
         };
-        break;
-
+      /**
       case "hostgator":
         // Treat arg as cookie value.
         // Split cookie value on semi-colon, take the first break which looks
@@ -49,8 +71,31 @@ var afftracker_setter = {
         var arg = cookie;
         return cookie.split(";", 1)[0].split(".")[1];
         break;
+      */
     }
   },
+
+  /**
+   * Finds the frame with corresponding URL and extracts its properties.
+   *
+   * @param {string} url URL to be matched to the src property of frame and img elements.
+   * @param {string} frame_type Type of frame as indicated by webRequest details object.
+   * @param {string} tab_id Tab where the content_script will look for frames.
+   * @return {object} Object containing "size" and "style" fields.
+   * @private
+   */
+  getFrameProperties: function(url, frame_type, tab_id) {
+    console.log("trying to get frame properties for " + url + " frame: " + frame_type + " for tab: " + tab_id);
+    var properties = {};
+    if (frame_type != 'main_frame') {
+      chrome.tabs.sendMessage(tab_id, {"method": "getFrame", "frame_type": frame_type}, function(response) {
+        console.log(response);
+        //properties = response.data;
+      });
+    }
+    return properties;
+  },
+
 
   /**
    * Callback for headers received events. Searches for Set-Cookie header
@@ -60,49 +105,83 @@ var afftracker_setter = {
    */
   response_callback: function(details) {
     var setter = afftracker_setter;
-    if (details.url.indexOf("amazon.com") !== -1 &&
-        details.requestId == setter.amazon["requestId"]) {
+    // Look for any Amazon site
+    var amazon_match = details.url.match(setter.amazon_regex);
+    if(typeof amazon_match != "undefined" && amazon_match != null && amazon_match.length > 0) {
+      var merchant = amazon_match[0]
+      var submission_obj = setter.merchant[details.requestId];
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
           if (header.value.substring(0, 9) === "UserPref=") {
             // Amazon's affiliate id does not show up in the Cookie.
-            var aff_id = setter.parse_aff_id("amazon", details.url);
+            var aff_id = setter.parseAffiliateId(merchant, details.url);
             var cookie = header.value;
             // String after UserPref=
             var cookie_val = cookie.substring(9, cookie.indexOf(';'));
             var cookie_hash = CryptoJS.MD5(cookie_val).toString(CryptoJS.enc.Base64);
+
+            chrome.storage.sync.get(setter.user_id_key, function(result) {
+              if (result.hasOwnProperty(setter.user_id_key)) {
+                submission_obj["userId"] = result[setter.user_id_key];
+              }
+            });
+
             // We don't send the cookie to our server, but check that the cookie we
             // recorded is the one user still has before displaying it.
-            setter.amazon["cookie"] = cookie_val;
-            setter.amazon["cookie_hash"] = cookie_hash;
-            setter.amazon["aff_id"] = aff_id;
-            setter.amazon["type"] = details.type;
+            submission_obj["cookie"] = cookie_val;
+            submission_obj["cookie_hash"] = cookie_hash;
+            submission_obj["aff_id"] = aff_id;
+            submission_obj["type"] = details.type;
             // In case of main frame, this is the same as landing URL.
-            setter.amazon["origin_frame"] = details.url;
-            setter.amazon["timestamp"] = details.timeStamp;
-            chrome.storage.sync.set({'afftracker_amazon': setter.amazon},
-                function() {});
+            submission_obj["origin_frame"] = details.url;
+            submission_obj["timestamp"] = details.timeStamp;
+            // Storage only needs different merchant cookie values.
+            // TODO: this may not work depending on whether these variables are available
+            // in this context
+            // We actually only care about the last cookie value written, so this over-writes.
+            var store_obj = {};
+            var storage_key = "AffiliateTracker_" + merchant;
+            store_obj[storage_key] = {"affiliate" : aff_id,
+                            "cookie": cookie_val,
+                            "origin": submission_obj["landing"]}; //TODO this is confusing
+            chrome.storage.sync.set(store_obj, function() {console.log("saved");});
 
-            // Before sending the data, remove the cookie value from the object
-            // for privacy reasons.
-            delete setter.amazon["cookie"];
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "http://127.0.0.1:5000/upload");
-            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-            xhr.send(JSON.stringify(setter.amazon));
-            setter.cookie_counter += 1;
-            chrome.notifications.create(
-              'new-cookie-notif-' + setter.cookie_counter,
-              { type: 'basic',
-                iconUrl: 'icon.png',
-                title: setter.amazon["merchant"] + " cookie",
-                message: "From " + setter.amazon["landing"],
-              }, function() {});
-            setTimeout(function(){
-                chrome.notifications.clear('new-cookie-notif-' + setter.cookie_counter, function() {});
+            // We need the DOM element to be rendered to get its properties.
+            // Sadly there is no reliable to do this. If the element is
+            // already deleted within 3 seconds, we are out of luck.
+            setTimeout(function() {
+              if (submission_obj.hasOwnProperty("cookie")) {
+                submission_obj["frame_properties"] = setter.getFrameProperties(details.url, details.type, details.tabId);
+                // Before sending the data, remove the cookie value from the object
+                // for privacy reasons.
+                delete submission_obj["cookie"];
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "http://127.0.0.1:5000/upload");
+                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                xhr.send(JSON.stringify(submission_obj));
+                // TODO: maybe check for success of xhr
+              }
+              // Delete this object either way
+              delete submission_obj;
             }, 3000);
-            setter.amazon = {};
+
+            setter.cookie_counter += 1;
+            var notification_opts = { type: 'basic',
+                iconUrl: 'icon.png',
+                title: merchant + " cookie",
+                message: "From " + submission_obj["landing"]
+              }
+            chrome.notifications.update(
+              setter.notification_id, notification_opts, function(wasUpdated) {
+                  if (!wasUpdated) {
+                    chrome.notifications.create(setter.notification_id,
+                        notification_opts, function() {});
+                  }
+              });
+            setTimeout(function(){
+                chrome.notifications.clear(setter.notification_id, function() {});
+            }, 3000);
           }
         }
       });
@@ -154,25 +233,35 @@ var afftracker_setter = {
 
     var amazon_match = details.url.match(setter.amazon_regex);
     if(typeof amazon_match != "undefined" && amazon_match != null && amazon_match.length > 0) {
-      setter.amazon = {"requestId": details.requestId};
+      var merchant = amazon_match[0];
+      if (typeof setter.merchant == "undefined" || setter.merchant == null) {
+        // All merchant requests are placed within 1 object.
+        setter.merchant = {};
+      }
+      // TODO: add user id to this object...
+      var new_submission = {};
       details.requestHeaders.forEach(function(header) {
         // Ignore amazon redirects to itself.
         if (header.name.toLowerCase() === "referer" &&
             !setter.amazon_regex.test(header.value)) {
-          setter.amazon["merchant"] = amazon_match[0];
-          setter.amazon["referer"] = header.value;
+          new_submission["merchant"] = merchant;
+          new_submission["referer"] = header.value;
           chrome.tabs.get(details.tabId, function(tab) {
-            setter.amazon["origin"] = tab.url;
-            setter.amazon["landing"] = tab.url;
+            // TODO: new_submission may not be available here.
+            new_submission["origin"] = tab.url;
+            new_submission["landing"] = tab.url;
             if (tab.hasOwnProperty("openerTabId")) {
               chrome.tabs.get(tab.openerTabId, function(openerTab) {
-                setter.amazon["origin"] = openerTab.url;
-                setter.amazon["new_tab"] = true;
+                // TODO: is new submission available here?
+                new_submission["origin"] = openerTab.url;
+                new_submission["new_tab"] = true;
               });
             } else {
-              setter.amazon["new_tab"] = false;
+              new_submission["new_tab"] = false;
             }
           });
+          // Chrome makes sure request ids are unique.
+          setter.merchant[details.requestId] = new_submission;
         }
       });
     }
@@ -196,3 +285,12 @@ chrome.webRequest.onHeadersReceived.addListener(
 chrome.webRequest.onSendHeaders.addListener(
     afftracker_setter.request_callback, {urls: ["<all_urls>"]},
     ["requestHeaders"]);
+
+// If this user does not have a user Id, generate one.
+chrome.storage.sync.get(afftracker_setter.user_id_key, function(result) {
+  var setter = afftracker_setter;
+  if (!result.hasOwnProperty(setter.user_id_key)) {
+    var new_id_obj = setter.generateUserId();
+    chrome.storage.sync.set(new_id_obj, function() {console.log("created user id");});
+  }
+});

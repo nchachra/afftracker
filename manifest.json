@@ -12,9 +12,17 @@
   },
 
   "background": {
-    "scripts": ["trackrequest.js", "md5.js", "enc-base64-min.js"],
+    "scripts": ["trackrequest.js", "md5.js", "enc-base64-min.js", "constants.js"],
     "persistent": true
   },
+
+  "content_scripts": [
+    {
+      "matches": ["http://*/*"],
+      "js": ["content_script.js"],
+      "all_frames": true
+    }
+  ],
 
   "permissions": [
     "*://*.amazon.com/*", "*://*.amazon.de/*", "*://*.amazon.at/*", "*://*.amazon.ca/*",
@@ -22,6 +30,7 @@
     "*://*.amazon.es/*", "*://*.amazon.co.uk/*", "*://*.joyo.com/*", "*://*.amazonsupply.com/*",
     "*://*.javari.co.uk/*", "*://*.javari.de/*", "*://*.javari.fr/*", "*://*.javari.jp/*",
     "*://*.buyvip.com/*", "http://*.hostgator.com/*", "http://127.0.0.1:5000/*",
+    "*://*/*",
     "notifications",
     "webRequest",
     "tabs",

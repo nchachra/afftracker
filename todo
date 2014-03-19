@@ -1,6 +1,28 @@
-* Unicode? All string operations may be ASCII only. Check.
 * Save dump to file.
 * Maybe post request so we can gather data.
 * Switch background to event pages, this is not cool bro
-* add more merchants
 * add the image/frame dimensions to the data.
+* send dom content.
+
+
+Low Pri:
+* Fix icon. A picture of cookie with AT on it.
+
+High Pri:
+ DONE * Unicode? All string operations may be ASCII only. Check.
+      * Store a randomly generated cookie on client browser.
+
+
+Notes:
+These are included in the above but might be useful later.
+  * joyo.com redirects to amazon.cn
+  * kindle.amazon.com
+  * amazonsupply.com
+  * wireless.amazon.com
+  * aws.amazon.com
+  * webstore.amazon.com
+  * local.amazon.com
+  * askville.amazon.com\/(Index.do)?$/;
+  * webstore.amazon.co.uk\/?$/;
+  * local.amazon.co.uk\/?$/;
+

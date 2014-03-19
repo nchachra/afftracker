@@ -5,7 +5,8 @@ var afftracker_loader = {
    *
    * @private
    */
-  merchants: ["amazon", "hostgator"],
+  //merchants: ["amazon", "hostgator"],
+  merchants: ["amazon"],
 
   /**
    * List of specifications to render for each merchant.
@@ -36,11 +37,12 @@ var afftracker_loader = {
       var icon_img = document.createElement('img');
       icon_img.src = "icons/" + merchant + "_icon.png";
       var icon_cell = document.createElement('td');
-      icon_cell.setAttribute('rowspan', 8);
+      //icon_cell.setAttribute('rowspan', 8);
       icon_cell.appendChild(icon_img);
 
       var icon_set = false;
 
+      /*
       for (var key in afftracker_loader.specs) {
         if (afftracker_loader.specs.hasOwnProperty(key)) {
           var row = document.createElement('tr');
@@ -59,6 +61,14 @@ var afftracker_loader = {
           tableEl.appendChild(row);
         }
       };
+      */
+      var row = document.createElement('tr');
+      row.appendChild(icon_cell);
+      info_cell = document.createElement('td');
+      info_cell.id = merchant + "-info";
+      row.appendChild(info_cell);
+      tableEl.appendChild(row);
+
       // Change background color for even numbered rows.
           if (index % 2 === 1) {
             tableEl.setAttribute("style", "background-color: #E6E6E6;");
@@ -78,6 +88,7 @@ var afftracker_loader = {
         }
         chrome.cookies.get({"url": cookie_url, "name": cookie_name},
             function(cookie) {
+          /**
           if (store_info && cookie && cookie.value === store_info.cookie) {
             document.getElementById(merchant + "-aff").innerHTML = store_info.aff_id;
             document.getElementById(merchant + "-time").innerHTML =
@@ -88,6 +99,16 @@ var afftracker_loader = {
             document.getElementById(merchant + "-origin").innerHTML = store_info.origin;
             document.getElementById(merchant + "-new_tab").innerHTML = store_info.new_tab;
             document.getElementById(merchant + "-origin_frame").innerHTML = store_info.origin_frame;
+          }
+          */
+          var el = document.getElementById(merchant + "-info");
+          console.log("store cookie " + store_info.cookie);
+          console.log("cookie " + cookie.value);
+          if (store_info && cookie && cookie.value == store_info.cookie) {
+            // TODO: Move it to a template. Whee.
+            el.innerHTML = "Your visit to <span style='font-weight:bold;'>" + store_info.origin + "</span> will earn <span style='font-weight:bold;'>" + store_info.aff_id + "</span> a commission on your next purchase from <span style='font-weight:bold;'>" + store_info.merchant + "</span>";
+          } else {
+            el.innerHTML = "Unknown";
           }
         });
       });

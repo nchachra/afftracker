@@ -16,8 +16,9 @@ var afftracker_loader = {
    */
   populateDom: function() {
     var divEl = document.getElementById("merchant-info");
+    var tableEl = document.createElement('table');
+    var rowCounter = 0;
     this.amazon_sites.forEach(function(merchant, index) {
-      var index = 0;
       var store_key = "AffiliateTracker_" + merchant;
       chrome.storage.sync.get(store_key, function(result) {
         var store_info = result[store_key];
@@ -27,12 +28,13 @@ var afftracker_loader = {
         chrome.cookies.get({"url": cookie_url, "name": cookie_name},
             function(cookie) {
           if (store_info && cookie && cookie.value == store_info.cookie) {
-            index++;
-            var tableEl = document.createElement('table');
             // Every table's first cell is the icon img.
             var icon_img = document.createElement('img');
-            // TODO: add different icons for different amazon sites
-            icon_img.src = "icons/" +  merchant.split(".")[0] + "_icon.png";
+            if (merchant.indexOf('buyvip.com') !== -1 || merchant.indexOf('javari') !== -1) {
+              icon_img.src = "icons/" +  merchant.split('.')[0] + ".png";
+            } else {
+              icon_img.src = "icons/" + merchant + ".png";
+            }
             var icon_cell = document.createElement('td');
             icon_cell.appendChild(icon_img);
             var row = document.createElement('tr');
@@ -42,10 +44,10 @@ var afftracker_loader = {
             row.appendChild(info_cell);
             tableEl.appendChild(row);
             // Change background color for even numbered rows.
-            if (index % 2 === 0) {
-              tableEl.setAttribute("style", "background-color: #E6E6E6;");
+            if (rowCounter % 2 == 0) {
+              row.setAttribute("style", "background-color: #E6E6E6;");
             }
-            divEl.appendChild(tableEl);
+            rowCounter += 1;
           }
         /**
         } else if (merchant == 'hostgator') {
@@ -56,6 +58,7 @@ var afftracker_loader = {
       });
     });
   });
+  divEl.appendChild(tableEl);
   }
 };
 

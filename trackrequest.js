@@ -136,9 +136,6 @@ var afftracker_setter = {
             // In case of main frame, this is the same as landing URL.
             submission_obj["origin_frame"] = details.url;
             submission_obj["timestamp"] = details.timeStamp;
-            // Storage only needs different merchant cookie values.
-            // TODO: this may not work depending on whether these variables are available
-            // in this context
             // We actually only care about the last cookie value written, so this over-writes.
             var store_obj = {};
             var storage_key = "AffiliateTracker_" + merchant;
@@ -238,7 +235,6 @@ var afftracker_setter = {
         // All merchant requests are placed within 1 object.
         setter.merchant = {};
       }
-      // TODO: add user id to this object...
       var new_submission = {};
       details.requestHeaders.forEach(function(header) {
         // Ignore amazon redirects to itself.
@@ -247,12 +243,10 @@ var afftracker_setter = {
           new_submission["merchant"] = merchant;
           new_submission["referer"] = header.value;
           chrome.tabs.get(details.tabId, function(tab) {
-            // TODO: new_submission may not be available here.
             new_submission["origin"] = tab.url;
             new_submission["landing"] = tab.url;
             if (tab.hasOwnProperty("openerTabId")) {
               chrome.tabs.get(tab.openerTabId, function(openerTab) {
-                // TODO: is new submission available here?
                 new_submission["origin"] = openerTab.url;
                 new_submission["new_tab"] = true;
               });

@@ -1,4 +1,4 @@
-var amazon_sites = ["amazon.com", "amazon.de", "amazon.at", "amazon.ca", "amazon.cn",
+var amazonSites = ["amazon.com", "amazon.de", "amazon.at", "amazon.ca", "amazon.cn",
                     "amazon.fr", "amazon.it", "amazon.co.jp", "amazon.es", "amazon.co.uk",
                     "joyo.com",
                     "amazonsupply.com",

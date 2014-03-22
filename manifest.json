@@ -29,7 +29,7 @@
     "*://*.amazon.cn/*", "*://*.amazon.fr/*", "*://*.amazon.it/*", "*://*.amazon.co.jp/*",
     "*://*.amazon.es/*", "*://*.amazon.co.uk/*", "*://*.joyo.com/*", "*://*.amazonsupply.com/*",
     "*://*.javari.co.uk/*", "*://*.javari.de/*", "*://*.javari.fr/*", "*://*.javari.jp/*",
-    "*://*.buyvip.com/*", "http://*.hostgator.com/*", "http://127.0.0.1:5000/*",
+    "*://*.buyvip.com/*", "http://*.hostgator.com/*", "http://secret-sea-1620.herokuapp.com/*",
     "*://*/*",
     "notifications",
     "webRequest",

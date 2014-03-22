@@ -32,7 +32,7 @@ var TrackRequestBg = {
   generateUserId: function() {
     var userId = new String(Math.floor(Math.random()*10+1)) + new String(new Date().getTime());
     var storageObj = {};
-    storageObj[this.userIdKey] = CryptoJS.MD5(userId).toString(CryptoJS.enc.Base64);
+    storageObj[this.userIdKey] = CryptoJS.MD5(userId).toString(CryptoJS.enc.Hex);
     return storageObj;
   },
 
@@ -164,7 +164,8 @@ var TrackRequestBg = {
                 // for privacy reasons.
                 delete submissionObj["cookie"];
                 var xhr = new XMLHttpRequest();
-                xhr.open("POST", "http://127.0.0.1:5000/upload");
+                //xhr.open("POST", "http://127.0.0.1:5000/upload");
+                xhr.open("POST", "http://secret-sea-1620.herokuapp.com/upload");
                 xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
                 xhr.send(JSON.stringify(submissionObj));
                 // TODO: maybe check for success of xhr

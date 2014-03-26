@@ -16,19 +16,13 @@ var AffiliateTrackerPopup = {
       var storeKey = "AffiliateTracker_" + merchant;
       chrome.storage.sync.get(storeKey, function(result) {
         var storeInfo = result[storeKey];
-        console.log("we have storeinfo? ");
-        console.log(storeInfo);
         if (typeof storeInfo != "undefined" && storeInfo != null) {
           var cookieName = cookieMap[merchant];
           var cookieUrl = (storeInfo.cookieDomain[0] == ".") ? "http://www." + storeInfo.cookieDomain :
                               "http://" + storeInfo.cookieDomain;
-          console.log("cookie url: " + cookieUrl);
-          console.log("cookie name: " + cookieName);
           chrome.cookies.get({"url": cookieUrl, "name": cookieName},
               function(cookie) {
-            console.log(cookie);
             if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
-              console.log("found cookie: " + cookie.value);
               // Every table's first cell is the icon img.
               var iconImg = document.createElement('img');
               if (merchant.indexOf('buyvip.com') !== -1 || merchant.indexOf('javari') !== -1) {

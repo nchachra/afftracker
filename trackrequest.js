@@ -117,25 +117,15 @@ var TrackRequestBg = {
     }
     if (typeof hostgatorMatch != "undefined" && hostgatorMatch != null && hostgatorMatch.length > 0) {
       merchant = hostgatorMatch[1];
-      console.log(merchant);
-      console.log("found merchant in response headers");
     }
     if (merchant != "") {
-      console.log("well we have a merchant: " + merchant);
       var submissionObj = setter.merchant[details.requestId];
-      console.log("looking for a response with request id : " + details.requestId);
-      console.log("and the submission obj: ");
-      console.log(submissionObj);
-      console.log("looking at details object: ");
-      console.log(details);
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
-          console.log("got set cookie for " + merchant);
           if ((amazonSites.indexOf(merchant) != -1 && header.value.indexOf("UserPref=") ==0 ) ||
               (merchant.indexOf("hostgator") != -1 && header.value.indexOf("GatorAffiliate=") == 0)) {
             var arg = "";
-            console.log("request matches hostgator gatoraffiliate cookie");
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.
               arg = details.url;
@@ -143,7 +133,6 @@ var TrackRequestBg = {
               arg = header.value;
             }
             var affId = setter.parseAffiliateId(merchant, arg);
-            console.log("affiliate id: " + affId);
             var cookie = header.value;
             var cookieVal = cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(';'));
             // We don't send the cookie to our server, but check that the cookie we
@@ -152,7 +141,6 @@ var TrackRequestBg = {
 
             submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(CryptoJS.enc.Hex);
 
-            console.log("cookie: " + cookie);
             var cookieDomain = "";
             if (cookie.indexOf("domain=") != -1) {
               var domainStart = cookie.indexOf("domain=");
@@ -162,7 +150,6 @@ var TrackRequestBg = {
               var domainStart = details.url.indexOf("//") + 2;
               cookieDomain = details.url.substring(domainStart, details.url.indexOf("/", domainStart));
             }
-            console.log("cookie domain: " + cookieDomain);
             submissionObj["cookieDomain"] = cookieDomain;
 
             var pathStart = cookie.indexOf("path=");
@@ -254,7 +241,6 @@ var TrackRequestBg = {
       } else if (typeof hostgatorMatch != "undefined" && hostgatorMatch != null &&
                 hostgatorMatch.length > 0) {
         merchant = hostgatorMatch[1];
-        console.log(hostgatorMatch);
       }
       var newSubmission = {};
       details.requestHeaders.forEach(function(header) {
@@ -278,7 +264,6 @@ var TrackRequestBg = {
             });
             // Chrome makes sure request ids are unique.
             setter.merchant[details.requestId] = newSubmission;
-            console.log("created new submissin obj for request id: " + details.requestId);
           }
         }
       });

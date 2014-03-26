@@ -2,10 +2,8 @@
 * add the image/frame dimensions to the data.
 * send dom content.
 
-
-High Pri:
- DONE * Unicode? All string operations may be ASCII only. Check.
-
+Low Pri:
+* Make all merchant icons be the same size.
 
 Notes:
 These are included in the above but might be useful later.

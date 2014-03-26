@@ -16,6 +16,13 @@ var TrackRequestBg = {
   amazonRegex: /(amazon\.(com|de|at|ca|cn|fr|it|co\.jp|es|co\.uk))|(joyo\.com)|(amazonsupply\.com)|(javari\.(co\.uk|de|fr|jp))|(buyvip\.com)/i,
 
   /**
+   * Matches Hostgator URL while pulling the domain out.
+   *
+   * @private
+   */
+  hostgatorRegex: /tracking\.(hostgator\.com)/i,
+
+  /**
    * User ID key. True across all extensions.
    *
    * @private
@@ -27,7 +34,7 @@ var TrackRequestBg = {
    * concatenated with the timestamp. We only generate a user id if
    * one doesn't exist already.
    *
-   * @return {string} UserId object {key:value}
+   * @return {object} UserId object {key:value}
    */
   generateUserId: function() {
     var userId = new String(Math.floor(Math.random()*10+1)) + new String(new Date().getTime());
@@ -63,16 +70,12 @@ var TrackRequestBg = {
             return args;
           }
         };
-      /**
-      case "hostgator":
+      } else if (merchant.indexOf("hostgator") != -1) {
         // Treat arg as cookie value.
         // Split cookie value on semi-colon, take the first break which looks
         //   like number.affId
-        var arg = cookie;
-        return cookie.split(";", 1)[0].split(".")[1];
-        break;
-      */
-    }
+        return arg.split(";", 1)[0].split(".")[1];
+      }
   },
 
   /**
@@ -107,24 +110,61 @@ var TrackRequestBg = {
     var setter = TrackRequestBg;
     // Look for any Amazon site
     var amazonMatch = details.url.match(setter.amazonRegex);
+    var hostgatorMatch = details.url.match(setter.hostgatorRegex);
+    var merchant = "";
     if(typeof amazonMatch != "undefined" && amazonMatch != null && amazonMatch.length > 0) {
-      var merchant = amazonMatch[0]
+      merchant = amazonMatch[0];
+    }
+    if (typeof hostgatorMatch != "undefined" && hostgatorMatch != null && hostgatorMatch.length > 0) {
+      merchant = hostgatorMatch[1];
+      console.log(merchant);
+      console.log("found merchant in response headers");
+    }
+    if (merchant != "") {
+      console.log("well we have a merchant: " + merchant);
       var submissionObj = setter.merchant[details.requestId];
+      console.log("looking for a response with request id : " + details.requestId);
+      console.log("and the submission obj: ");
+      console.log(submissionObj);
+      console.log("looking at details object: ");
+      console.log(details);
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
-          if (header.value.substring(0, 9) === "UserPref=") {
-            // Amazon's affiliate id does not show up in the Cookie.
-            var affId = setter.parseAffiliateId(merchant, details.url);
+          console.log("got set cookie for " + merchant);
+          if ((amazonSites.indexOf(merchant) != -1 && header.value.indexOf("UserPref=") ==0 ) ||
+              (merchant.indexOf("hostgator") != -1 && header.value.indexOf("GatorAffiliate=") == 0)) {
+            var arg = "";
+            console.log("request matches hostgator gatoraffiliate cookie");
+            if (amazonSites.indexOf(merchant) != -1) {
+              // Amazon's affiliate id does not show up in the Cookie.
+              arg = details.url;
+            } else if (merchant.indexOf ("hostgator") != -1) {
+              arg = header.value;
+            }
+            var affId = setter.parseAffiliateId(merchant, arg);
+            console.log("affiliate id: " + affId);
             var cookie = header.value;
-            // String after UserPref=
-            console.log(cookie);
-            var cookieVal = cookie.substring(9, cookie.indexOf(';'));
-            var cookieHash = CryptoJS.MD5(cookieVal).toString(CryptoJS.enc.Base64);
+            var cookieVal = cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(';'));
+            // We don't send the cookie to our server, but check that the cookie we
+            // recorded is the one user still has before displaying it.
+            submissionObj["cookie"] = cookieVal;
 
-            var domainStart = cookie.indexOf("domain=");
-            var cookieDomain = cookie.substring(domainStart+ 7, cookie.indexOf(";", domainStart));
+            submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(CryptoJS.enc.Hex);
+
+            console.log("cookie: " + cookie);
+            var cookieDomain = "";
+            if (cookie.indexOf("domain=") != -1) {
+              var domainStart = cookie.indexOf("domain=");
+              cookieDomain = cookie.substring(domainStart+ 7, cookie.indexOf(";", domainStart));
+            } else {
+              // If not specified, the domain of the cookie is the domain of url.
+              var domainStart = details.url.indexOf("//") + 2;
+              cookieDomain = details.url.substring(domainStart, details.url.indexOf("/", domainStart));
+            }
+            console.log("cookie domain: " + cookieDomain);
             submissionObj["cookieDomain"] = cookieDomain;
+
             var pathStart = cookie.indexOf("path=");
             var cookiePath = cookie.substring(pathStart + 5, cookie.indexOf(";", pathStart));
             submissionObj["cookiePath"] = cookiePath;
@@ -135,10 +175,6 @@ var TrackRequestBg = {
               }
             });
 
-            // We don't send the cookie to our server, but check that the cookie we
-            // recorded is the one user still has before displaying it.
-            submissionObj["cookie"] = cookieVal;
-            submissionObj["cookieHash"] = cookieHash;
             submissionObj["affId"] = affId;
             submissionObj["type"] = details.type;
             // In case of main frame, this is the same as landing URL.
@@ -194,27 +230,6 @@ var TrackRequestBg = {
         }
       });
     }
-    /**else if (details.url.indexOf("hostgator.com") !== -1 &&
-               details.requestId == setter.hostgator["requestId"]) {
-        details.responseHeaders.forEach(function(header) {
-          if(header.name.toLowerCase() === "set-cookie") {
-            if (header.value.indexOf("GatorAffiliate") !== -1) {
-              // Affiliate ID is in the Set-Cookie header.
-              var affId = setter.parse_affId("hostgator", header.value);
-              var cookie = header.value;
-              // Value is string after GatorAffiliate=
-              var cookieVal = cookie.substring(15, cookie.indexOf(";"));
-              setter.hostgator["cookie"] = cookieVal;
-              setter.hostgator["affId"] = affId;
-              setter.hostgator["type"] = details.type;
-              setter.hostgator["timestamp"] = details.timeStamp;
-              chrome.storage.sync.set(
-                {"afftracker_hostgator": setter.hostgator}, function() {});
-              setter.hostgator = {};
-          }
-        }
-      });
-    }*/
   },
 
 
@@ -226,47 +241,45 @@ var TrackRequestBg = {
    */
   requestCallback: function(details) {
     var setter = TrackRequestBg;
-    /**if (details.url.indexOf("http://secure.hostgator.com") === 0) {
-      setter.hostgator = {"requestId": details.requestId};
-      details.requestHeaders.forEach(function(header) {
-        if (header.name.toLowerCase() === "referer") {
-          setter.hostgator["referer"] = header.value;
-          chrome.tabs.get(details.tabId, function(tab) {
-            setter.hostgator["landing"] = tab.url;
-          });
-        }
-      });
-    }*/
-    // replace sites with regexp
-
+    if (typeof setter.merchant == "undefined" || setter.merchant == null) {
+      // All merchant requests are placed within 1 object.
+      setter.merchant = {};
+    }
     var amazonMatch = details.url.match(setter.amazonRegex);
-    if(typeof amazonMatch != "undefined" && amazonMatch != null && amazonMatch.length > 0) {
-      var merchant = amazonMatch[0];
-      if (typeof setter.merchant == "undefined" || setter.merchant == null) {
-        // All merchant requests are placed within 1 object.
-        setter.merchant = {};
+    var hostgatorMatch = details.url.match(setter.hostgatorRegex);
+    var merchant = "";
+    if (setter.amazonRegex.test(details.url) | setter.hostgatorRegex.test(details.url)) {
+      if(typeof amazonMatch != "undefined" && amazonMatch != null && amazonMatch.length > 0) {
+        merchant = amazonMatch[0];
+      } else if (typeof hostgatorMatch != "undefined" && hostgatorMatch != null &&
+                hostgatorMatch.length > 0) {
+        merchant = hostgatorMatch[1];
+        console.log(hostgatorMatch);
       }
       var newSubmission = {};
       details.requestHeaders.forEach(function(header) {
         // Ignore amazon redirects to itself.
-        if (header.name.toLowerCase() === "referer" &&
-            !setter.amazonRegex.test(header.value)) {
-          newSubmission["merchant"] = merchant;
-          newSubmission["referer"] = header.value;
-          chrome.tabs.get(details.tabId, function(tab) {
-            newSubmission["origin"] = tab.url;
-            newSubmission["landing"] = tab.url;
-            if (tab.hasOwnProperty("openerTabId")) {
-              chrome.tabs.get(tab.openerTabId, function(openerTab) {
-                newSubmission["origin"] = openerTab.url;
-                newSubmission["newTab"] = true;
-              });
-            } else {
-              newSubmission["newTab"] = false;
-            }
-          });
-          // Chrome makes sure request ids are unique.
-          setter.merchant[details.requestId] = newSubmission;
+        if (header.name.toLowerCase() === "referer") {
+          if ((setter.amazonRegex.test(merchant) && !setter.amazonRegex.test(header.value)) ||
+              merchant.indexOf("hostgator") != -1) {
+            newSubmission["merchant"] = merchant;
+            newSubmission["referer"] = header.value;
+            chrome.tabs.get(details.tabId, function(tab) {
+              newSubmission["origin"] = tab.url;
+              newSubmission["landing"] = tab.url;
+              if (tab.hasOwnProperty("openerTabId")) {
+                chrome.tabs.get(tab.openerTabId, function(openerTab) {
+                  newSubmission["origin"] = openerTab.url;
+                  newSubmission["newTab"] = true;
+                });
+              } else {
+                newSubmission["newTab"] = false;
+              }
+            });
+            // Chrome makes sure request ids are unique.
+            setter.merchant[details.requestId] = newSubmission;
+            console.log("created new submissin obj for request id: " + details.requestId);
+          }
         }
       });
     }

@@ -1,16 +1,10 @@
-* Save dump to file.
-* Maybe post request so we can gather data.
 * Switch background to event pages, this is not cool bro
 * add the image/frame dimensions to the data.
 * send dom content.
 
 
-Low Pri:
-* Fix icon. A picture of cookie with AT on it.
-
 High Pri:
  DONE * Unicode? All string operations may be ASCII only. Check.
-      * Store a randomly generated cookie on client browser.
 
 
 Notes:

@@ -229,6 +229,7 @@ var TrackRequestBg = {
               delete submissionObj;
             }, 3000);
 
+            // TODO: for sites pushing multiple cookies, notifications are't handled well.
             setter.cookieCounter += 1;
             var notificationOpts = { type: 'basic',
                 iconUrl: 'icon.png',

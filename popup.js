@@ -18,14 +18,16 @@ var AffiliateTrackerPopup = {
         var storeInfo = result[storeKey];
         if (typeof storeInfo != "undefined" && storeInfo != null) {
           var cookieName = cookieMap[merchant];
-          var cookieUrl = (storeInfo.cookieDomain[0] == ".") ? "http://www." + storeInfo.cookieDomain :
-                              "http://" + storeInfo.cookieDomain;
+          var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
+                           "http://www." + storeInfo.cookieDomain :
+                           "http://" + storeInfo.cookieDomain;
           chrome.cookies.get({"url": cookieUrl, "name": cookieName},
               function(cookie) {
             if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
               // Every table's first cell is the icon img.
               var iconImg = document.createElement('img');
-              if (merchant.indexOf('buyvip.com') !== -1 || merchant.indexOf('javari') !== -1) {
+              if (merchant.indexOf('buyvip.com') !== -1 ||
+                  merchant.indexOf('javari') !== -1) {
                 iconImg.src = "icons/" +  merchant.split('.')[0] + ".png";
               } else {
                 iconImg.src = "icons/" + merchant + ".png";
@@ -35,12 +37,17 @@ var AffiliateTrackerPopup = {
               var row = document.createElement('tr');
               row.appendChild(iconCell);
               infoCell = document.createElement('td');
-              infoCell.innerHTML = "Your visit to <span style='font-weight:bold;'>" + storeInfo.origin + "</span> will earn <span style='font-weight:bold;'>" + storeInfo.affiliate + "</span> a commission on your next purchase from <span style='font-weight:bold;'>" + merchant + "</span>";
+              infoCell.innerHTML = "Your visit to " +
+                    "<span style='font-weight:bold;'>" + storeInfo.origin +
+                    "</span> will earn <span style='font-weight:bold;'>" +
+                    storeInfo.affiliate + "</span> a commission on your " +
+                    "next purchase from <span style='font-weight:bold;'>" +
+                    merchant + "</span>";
               row.appendChild(infoCell);
               tableEl.appendChild(row);
               // Change background color for even numbered rows.
               if (rowCounter % 2 == 0) {
-                row.setAttribute("style", "background-color: #E6E6E6;");
+                row.setAttribute("style", "background-color: #edf0f5;");
               }
               rowCounter += 1;
             }

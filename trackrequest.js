@@ -1,6 +1,5 @@
 var TrackRequestBg = {
 
-
   /**
    * We need notification ID to control when it should be hidden.
    *
@@ -8,42 +7,17 @@ var TrackRequestBg = {
    */
   notificationId: "AffiliateTracker_notif",
 
-  /**
-   * Regex to pull out the amazon site name. We call this merchant site.
-   *
-   * @private
-   */
-  amazonRegex: /(amazon\.(com|de|at|ca|cn|fr|it|co\.jp|es|co\.uk))|(joyo\.com)|(amazonsupply\.com)|(javari\.(co\.uk|de|fr|jp))|(buyvip\.com)/i,
-
-  /**
-   * Matches Hostgator URL while pulling the domain out.
-   *
-   * @private
-   */
-  hostgatorRegex: /tracking\.(hostgator\.com)/i,
-
-  /**
-   * Matches GoDaddy URLs. godaddy's international sites are uk.goddady.com, etc.
-   * GoDaddy uses CJ as one of their partners.
-   *
-   * @private
-   */
-  goDaddyCJRegex: /(godaddy\.com).*Commission.*Junction/i,
-  //?isc=cjcho199a&utm_campaign=affiliates_cj_199hst&utm_source=Commission%20Junction&utm_medium=External%2BAffil&utm_content=cjcho199a&cvosrc=affiliate.cj.PID
-
-  /**
-   * Match dreamhost URL affiliate URL.
-   *
-   * @private
-   */
-  dreamhostRegex: /(dreamhost\.com)\/redir\.cgi\?ad=rewards\|\d+/i,
-
-  /**
-   * Bluehost.com affiliate URL match.
-   *
-   * @private
-   */
-  bluehostRegex: /(bluehost\.com)\//i,
+  merchantRe: RegExp(['(amazon\\.(com|de|at|ca|cn|fr|it|co\\.jp|es|co\\.uk))',
+                       '|(joyo\\.com)', //Redirects to Amazon.cn
+                       '|(amazonsupply\\.com)',
+                       '|(javari\\.(co\\.uk|de|fr|jp))', //Amazon sites
+                       '|(buyvip\\.com)', //Amazon site
+                       '|tracking\\.(hostgator\\.com)', //Hostgator
+                       '|(godaddy\\.com).*Commission.*Junction', //GoDaddy
+                       '|(dreamhost\\.com)\\/redir\\.cgi\\?ad=rewards\\|\\d+',
+                       '|(bluehost\\.com)\\/',
+                       '|(justhost\\.com)\\/',
+                       '|(hostmonster\\.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -102,7 +76,9 @@ var TrackRequestBg = {
         // arg is cookie value of the form rewards|affid
         //   but it is url encoded so it looks like rewards%7C<affid>;...
         return arg.split(";", 1)[0].split("7C")[1];
-      } else if (merchant.indexOf("bluehost") != -1) {
+      } else if (merchant.indexOf("bluehost") != -1 ||
+                 merchant.indexOf("justhost") != -1 ||
+                 merchant.indexOf("hostmonster") != -1) {
         // arg is cookie. Cookie usually takes one of two forms (I think):
         //    r=<affId>^<campaignId>^<srcUrl>
         //    or
@@ -147,49 +123,54 @@ var TrackRequestBg = {
   responseCallback: function(details) {
     var setter = TrackRequestBg;
     var merchant = "";
-    if(setter.amazonRegex.test(details.url)) {
-      merchant = details.url.match(setter.amazonRegex)[0];
-    } else if (setter.hostgatorRegex.test(details.url)) {
-      merchant = details.url.match(setter.hostgatorRegex)[1];
-    } /*else if (setter.goDaddyCJRegex.test(details.url)) {
-      merchant = details.url.match(setter.goDaddyCJRegex)[0];
-    } */else if (setter.dreamhostRegex.test(details.url)) {
-      merchant = details.url.match(setter.dreamhostRegex)[1];
-    } else if (setter.bluehostRegex.test(details.url)) {
-      merchant = details.url.match(setter.bluehostRegex)[1];
+    if(setter.merchantRe.test(details.url)) {
+      details.url.match(setter.merchantRe).forEach(function(matched, index) {
+        if (index != 0 && typeof matched != "undefined") {
+            merchant = matched;
+        }
+      });
     }
     if (merchant != "") {
       var submissionObj = setter.merchant[details.requestId];
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
-          if ((amazonSites.indexOf(merchant) != -1 && header.value.indexOf("UserPref=") ==0 ) ||
-              (merchant.indexOf("hostgator") != -1 && header.value.indexOf("GatorAffiliate=") == 0) ||
-              (merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
-              (merchant.indexOf("dreamhost") != -1 && header.value.indexOf("referred=") == 0) ||
+          if ((amazonSites.indexOf(merchant) != -1 &&
+               header.value.indexOf("UserPref=") ==0 ) ||
+              (merchant.indexOf("hostgator") != -1 &&
+               header.value.indexOf("GatorAffiliate=") == 0) ||
+              //(merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
+              (merchant.indexOf("dreamhost") != -1 &&
+               header.value.indexOf("referred=") == 0) ||
               // Bluehost 301 redirects from tracking URL to bluehost.com and sends 2 cookies called
               // r. The one set for .bluehost.com is empty. The real cookie is the one set for
               // www.bluehost.com.
-              (merchant.indexOf("bluehost") != -1 && header.value.indexOf("r=") == 0 && header.value.indexOf("domain=.bluehost.com;") == -1)) {
+              (merchant.indexOf("bluehost") != -1 &&
+               header.value.indexOf("r=") == 0 &&
+               header.value.indexOf("domain=.bluehost.com;") == -1) ||
+              (merchant.indexOf("justhost") != -1 &&
+               header.value.indexOf("r=") == 0 &&
+               header.value.indexOf("domain=.justhost.com;") == -1) ||
+              (merchant.indexOf("hostmonster") != -1 &&
+               header.value.indexOf("r=") == 0 &&
+               header.value.indexOf("domain=.hostmonster.com;") == -1)) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.
               arg = details.url;
-            } else if (merchant.indexOf("hostgator") != -1 ||
-                       merchant.indexOf("dreamhost") != -1 ||
-                       merchant.indexOf("bluehost") != -1) {
-              arg = header.value;
-            } else if (merchant.indexOf("godaddy") != -1 /*TODO*/) {
+            } else {
               arg = header.value;
             }
             var affId = setter.parseAffiliateId(merchant, arg);
             var cookie = header.value;
-            var cookieVal = (cookie.indexOf(";") == -1) ? cookie.substring(cookie.indexOf("=")) :
-                            cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(';'));
-            // We don't send the cookie to our server, but check that the cookie we
-            // recorded is the one user still has before displaying it.
+            var cookieVal = (cookie.indexOf(";") == -1) ?
+                             cookie.substring(cookie.indexOf("=")) :
+                             cookie.substring(cookie.indexOf("=") + 1,
+                                              cookie.indexOf(';'));
+            // We don't send the cookie to our server, but check that the
+            // cookie we recorded is the one user still has before displaying
+            // it.
             submissionObj["cookie"] = cookieVal;
-
             submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(CryptoJS.enc.Hex);
 
             var cookieDomain = "";
@@ -239,7 +220,8 @@ var TrackRequestBg = {
             // already deleted within 3 seconds, we are out of luck.
             setTimeout(function() {
               if (submissionObj.hasOwnProperty("cookie")) {
-                submissionObj["frameProperties"] = setter.getFrameProperties(details.url, details.type, details.tabId);
+                submissionObj["frameProperties"] = setter.getFrameProperties(
+                    details.url, details.type, details.tabId);
                 // Before sending the data, remove the cookie value from the object
                 // for privacy reasons.
                 delete submissionObj["cookie"];
@@ -291,17 +273,8 @@ var TrackRequestBg = {
       setter.merchant = {};
     }
     var merchant = "";
-    if (setter.amazonRegex.test(details.url)) {
-      merchant = details.url.match(setter.amazonRegex);
-    } else if (setter.hostgatorRegex.test(details.url)) {
-      merchant = details.url.match(setter.hostgatorRegex)[1];
-    } /*else if (setter.goDaddyCJRegex.test(details.url)) {
-      merchant = details.url.match(setter.goDaddyCJRegex)[1];
-      console.log("in request godaddy mechant: " + merchant);
-    }*/ else if (setter.dreamhostRegex.test(details.url)) {
-      merchant = details.url.match(setter.dreamhostRegex)[1];
-    } else if (setter.bluehostRegex.test(details.url)) {
-      merchant = details.url.match(setter.bluehostRegex)[1];
+    if (setter.merchantRe.test(details.url)) {
+      merchant = details.url.match(setter.merchantRe)[1];
     }
     if (merchant != "") {
       var newSubmission = {};
@@ -311,10 +284,7 @@ var TrackRequestBg = {
         //   response because CJ makes things complicated with a lot of
         //   redirects.
         if (header.name.toLowerCase() === "referer") {
-          if ((setter.amazonRegex.test(merchant) && !setter.amazonRegex.test(header.value)) ||
-              merchant.indexOf("hostgator") != -1 ||
-              merchant.indexOf("dreamhost") != -1 ||
-              merchant.indexOf("bluehost") != -1) {
+          if (!amazonSites.indexOf(merchant) != -1 || !setter.merchantRe.test(header.value))
                 //TODO: this is  aproblem for clients that strip referers...
             newSubmission["merchant"] = merchant;
             newSubmission["referer"] = header.value;
@@ -333,10 +303,9 @@ var TrackRequestBg = {
             // Chrome makes sure request ids are unique.
             setter.merchant[details.requestId] = newSubmission;
           }
-        }
-      });
-    }
-  },
+        });
+      };
+    },
 };
 
 

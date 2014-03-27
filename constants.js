@@ -24,7 +24,9 @@ var cookieMap = { "amazon.com": "UserPref",
                   "buyvip.com":  "UserPref",
                   "hostgator.com": "GatorAffiliate",
                   "dreamhost.com": "referred",
-                  "bluehost.com": "r"
+                  "bluehost.com": "r",
+                  "hostmonster.com": "r",
+                  "justhost.com": "r"
                  }
 
 // These are included in the above but might be useful later.

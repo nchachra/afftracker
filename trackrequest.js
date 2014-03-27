@@ -139,7 +139,6 @@ var TrackRequestBg = {
       merchant = details.url.match(setter.dreamhostRegex)[1];
     }
     if (merchant != "") {
-      console.log(details);
       var submissionObj = setter.merchant[details.requestId];
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
@@ -304,7 +303,6 @@ var TrackRequestBg = {
             });
             // Chrome makes sure request ids are unique.
             setter.merchant[details.requestId] = newSubmission;
-            console.log("setting request id: "+ details.requestId);
           }
         }
       });

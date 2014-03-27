@@ -18,7 +18,8 @@ var TrackRequestBg = {
                        '|(bluehost\\.com)\\/',
                        '|(justhost\\.com)\\/',
                        '|(hostmonster\\.com)\\/',
-                       '|(hosting24\\.com)\\/'].join(''), 'i'),
+                       '|(hosting24\\.com)\\/',
+                       '|(inmotionhosting.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -90,9 +91,11 @@ var TrackRequestBg = {
         } else {
           return arg.split("%5E", 1)[0];
         }
-      } else if (merchant.indexOf("hosting24") != -1) {
-        // arg is cookie like aff=<id>;...
-        return arg.split(";")[0].split("=")[1];
+      } else if (merchant == 'hosting24.com' ||
+                merchant == 'inmotionhosting.com') {
+          // arg is cookie like aff=<id>;... for hosting24
+          // and affiliates=<id> for inmotionhosting.
+          return arg.split(";")[0].split("=")[1];
       }
   },
 
@@ -139,6 +142,7 @@ var TrackRequestBg = {
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
+          // TODO: use a map for these. This is silly
           if ((amazonSites.indexOf(merchant) != -1 &&
                header.value.indexOf("UserPref=") ==0 ) ||
               (merchant.indexOf("hostgator") != -1 &&
@@ -159,7 +163,9 @@ var TrackRequestBg = {
                header.value.indexOf("r=") == 0 &&
                header.value.indexOf("domain=.hostmonster.com;") == -1) ||
               (merchant.indexOf("hosting24") != -1 &&
-               header.value.indexOf("aff=") == 0)) {
+               header.value.indexOf("aff=") == 0) ||
+              (merchant == "inmotionhosting.com" &&
+               header.value.indexOf("affiliates") != -1)) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.

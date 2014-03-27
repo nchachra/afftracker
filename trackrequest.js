@@ -39,6 +39,13 @@ var TrackRequestBg = {
   dreamhostRegex: /(dreamhost\.com)\/redir\.cgi\?ad=rewards\|\d+/i,
 
   /**
+   * Bluehost.com affiliate URL match.
+   *
+   * @private
+   */
+  bluehostRegex: /(bluehost\.com)\//i,
+
+  /**
    * User ID key. True across all extensions.
    *
    * @private
@@ -95,6 +102,17 @@ var TrackRequestBg = {
         // arg is cookie value of the form rewards|affid
         //   but it is url encoded so it looks like rewards%7C<affid>;...
         return arg.split(";", 1)[0].split("7C")[1];
+      } else if (merchant.indexOf("bluehost") != -1) {
+        // arg is cookie. Cookie usually takes one of two forms (I think):
+        //    r=<affId>^<campaignId>^<srcUrl>
+        //    or
+        //    r=cad^<affId>^<randomString>
+        // The cookies are URL encoded and ^ is %5E.
+        if (arg.indexOf("r=cad") == 0) {
+          return arg.split("%5E", 2)[1];
+        } else {
+          return arg.split("%5E", 1)[0];
+        }
       }
   },
 
@@ -137,6 +155,8 @@ var TrackRequestBg = {
       merchant = details.url.match(setter.goDaddyCJRegex)[0];
     } */else if (setter.dreamhostRegex.test(details.url)) {
       merchant = details.url.match(setter.dreamhostRegex)[1];
+    } else if (setter.bluehostRegex.test(details.url)) {
+      merchant = details.url.match(setter.bluehostRegex)[1];
     }
     if (merchant != "") {
       var submissionObj = setter.merchant[details.requestId];
@@ -146,13 +166,18 @@ var TrackRequestBg = {
           if ((amazonSites.indexOf(merchant) != -1 && header.value.indexOf("UserPref=") ==0 ) ||
               (merchant.indexOf("hostgator") != -1 && header.value.indexOf("GatorAffiliate=") == 0) ||
               (merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
-              (merchant.indexOf("dreamhost") != -1 && header.value.indexOf("referred=") == 0)) {
+              (merchant.indexOf("dreamhost") != -1 && header.value.indexOf("referred=") == 0) ||
+              // Bluehost 301 redirects from tracking URL to bluehost.com and sends 2 cookies called
+              // r. The one set for .bluehost.com is empty. The real cookie is the one set for
+              // www.bluehost.com.
+              (merchant.indexOf("bluehost") != -1 && header.value.indexOf("r=") == 0 && header.value.indexOf("domain=.bluehost.com;") == -1)) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.
               arg = details.url;
             } else if (merchant.indexOf("hostgator") != -1 ||
-                       merchant.indexOf("dreamhost") != -1) {
+                       merchant.indexOf("dreamhost") != -1 ||
+                       merchant.indexOf("bluehost") != -1) {
               arg = header.value;
             } else if (merchant.indexOf("godaddy") != -1 /*TODO*/) {
               arg = header.value;
@@ -275,6 +300,8 @@ var TrackRequestBg = {
       console.log("in request godaddy mechant: " + merchant);
     }*/ else if (setter.dreamhostRegex.test(details.url)) {
       merchant = details.url.match(setter.dreamhostRegex)[1];
+    } else if (setter.bluehostRegex.test(details.url)) {
+      merchant = details.url.match(setter.bluehostRegex)[1];
     }
     if (merchant != "") {
       var newSubmission = {};
@@ -286,7 +313,8 @@ var TrackRequestBg = {
         if (header.name.toLowerCase() === "referer") {
           if ((setter.amazonRegex.test(merchant) && !setter.amazonRegex.test(header.value)) ||
               merchant.indexOf("hostgator") != -1 ||
-              merchant.indexOf("dreamhost") != -1) {
+              merchant.indexOf("dreamhost") != -1 ||
+              merchant.indexOf("bluehost") != -1) {
                 //TODO: this is  aproblem for clients that strip referers...
             newSubmission["merchant"] = merchant;
             newSubmission["referer"] = header.value;

@@ -23,6 +23,9 @@ var AffiliateTrackerPopup = {
                            "http://" + storeInfo.cookieDomain;
           chrome.cookies.get({"url": cookieUrl, "name": cookieName},
               function(cookie) {
+                console.log("cookiename: " + cookieName);
+                console.log("cookieurl: " + cookieUrl);
+                console.log("cookie: " +  cookie);
             if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
               // Every table's first cell is the icon img.
               var iconImg = document.createElement('img');

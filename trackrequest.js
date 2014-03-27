@@ -17,7 +17,8 @@ var TrackRequestBg = {
                        '|(dreamhost\\.com)\\/redir\\.cgi\\?ad=rewards\\|\\d+',
                        '|(bluehost\\.com)\\/',
                        '|(justhost\\.com)\\/',
-                       '|(hostmonster\\.com)\\/'].join(''), 'i'),
+                       '|(hostmonster\\.com)\\/',
+                       '|(hosting24\\.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -89,6 +90,9 @@ var TrackRequestBg = {
         } else {
           return arg.split("%5E", 1)[0];
         }
+      } else if (merchant.indexOf("hosting24") != -1) {
+        // arg is cookie like aff=<id>;...
+        return arg.split(";")[0].split("=")[1];
       }
   },
 
@@ -142,9 +146,9 @@ var TrackRequestBg = {
               //(merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
               (merchant.indexOf("dreamhost") != -1 &&
                header.value.indexOf("referred=") == 0) ||
-              // Bluehost 301 redirects from tracking URL to bluehost.com and sends 2 cookies called
-              // r. The one set for .bluehost.com is empty. The real cookie is the one set for
-              // www.bluehost.com.
+              // Bluehost 301 redirects from tracking URL to bluehost.com and
+              // sends 2 cookies called r. The one set for .bluehost.com is
+              // empty. The real cookie is the one set for www.bluehost.com.
               (merchant.indexOf("bluehost") != -1 &&
                header.value.indexOf("r=") == 0 &&
                header.value.indexOf("domain=.bluehost.com;") == -1) ||
@@ -153,7 +157,9 @@ var TrackRequestBg = {
                header.value.indexOf("domain=.justhost.com;") == -1) ||
               (merchant.indexOf("hostmonster") != -1 &&
                header.value.indexOf("r=") == 0 &&
-               header.value.indexOf("domain=.hostmonster.com;") == -1)) {
+               header.value.indexOf("domain=.hostmonster.com;") == -1) ||
+              (merchant.indexOf("hosting24") != -1 &&
+               header.value.indexOf("aff=") == 0)) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.
@@ -176,7 +182,12 @@ var TrackRequestBg = {
             var cookieDomain = "";
             if (cookie.indexOf("domain=") != -1) {
               var domainStart = cookie.indexOf("domain=");
-              cookieDomain = cookie.substring(domainStart+ 7, cookie.indexOf(";", domainStart));
+              if (cookie.indexOf(";", domainStart) == -1) {
+                // domain= is not terminated by ; because it's at the end.
+                cookieDomain = cookie.substring(domainStart + 7);
+              } else {
+                cookieDomain = cookie.substring(domainStart+ 7, cookie.indexOf(";", domainStart));
+              }
             } else {
               // If not specified, the domain of the cookie is the domain of url.
               var domainStart = details.url.indexOf("//") + 2;
@@ -273,8 +284,12 @@ var TrackRequestBg = {
       setter.merchant = {};
     }
     var merchant = "";
-    if (setter.merchantRe.test(details.url)) {
-      merchant = details.url.match(setter.merchantRe)[1];
+    if(setter.merchantRe.test(details.url)) {
+      details.url.match(setter.merchantRe).forEach(function(matched, index) {
+        if (index != 0 && typeof matched != "undefined") {
+            merchant = matched;
+        }
+      });
     }
     if (merchant != "") {
       var newSubmission = {};

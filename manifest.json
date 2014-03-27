@@ -3,7 +3,7 @@
 
   "name": "AffiliateTracker",
   "description": "Track affiliates earning commission on your next purchase",
-  "version": "1.2",
+  "version": "1.3",
 
   "browser_action": {
     "default_icon": "icon.png",

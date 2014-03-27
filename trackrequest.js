@@ -23,7 +23,8 @@ var TrackRequestBg = {
                        '|(hostmonster\\.com)\\/',
                        '|(hosting24\\.com)\\/',
                        '|(inmotionhosting.com)\\/',
-                       '|(ipage.com)\\/'].join(''), 'i'),
+                       '|(ipage.com)\\/',
+                       '|(fatcow.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -100,7 +101,8 @@ var TrackRequestBg = {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
           return arg.split(";")[0].split("=")[1];
-      } else if (merchant == 'ipage.com') {
+      } else if (merchant == 'ipage.com' ||
+                 merchant == 'fatcow.com') {
         // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
         var affIndex = arg.indexOf("AffID&");
         return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));

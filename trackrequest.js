@@ -7,11 +7,14 @@ var TrackRequestBg = {
    */
   notificationId: "AffiliateTracker_notif",
 
-  merchantRe: RegExp(['(amazon\\.(com|de|at|ca|cn|fr|it|co\\.jp|es|co\\.uk))',
-                       '|(joyo\\.com)', //Redirects to Amazon.cn
+  merchantRe: RegExp([  /* Amazon sites */
+                       '(amazon\\.(com|de|at|ca|cn|fr|it|co\\.jp|es|co\\.uk))',
+                       '|(joyo\\.com)',
                        '|(amazonsupply\\.com)',
-                       '|(javari\\.(co\\.uk|de|fr|jp))', //Amazon sites
-                       '|(buyvip\\.com)', //Amazon site
+                       '|(javari\\.(co\\.uk|de|fr|jp))',
+                       '|(buyvip\\.com)',
+
+                       /* Hosting sites*/
                        '|tracking\\.(hostgator\\.com)', //Hostgator
                        '|(godaddy\\.com).*Commission.*Junction', //GoDaddy
                        '|(dreamhost\\.com)\\/redir\\.cgi\\?ad=rewards\\|\\d+',
@@ -19,7 +22,8 @@ var TrackRequestBg = {
                        '|(justhost\\.com)\\/',
                        '|(hostmonster\\.com)\\/',
                        '|(hosting24\\.com)\\/',
-                       '|(inmotionhosting.com)\\/'].join(''), 'i'),
+                       '|(inmotionhosting.com)\\/',
+                       '|(ipage.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -96,6 +100,10 @@ var TrackRequestBg = {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
           return arg.split(";")[0].split("=")[1];
+      } else if (merchant == 'ipage.com') {
+        // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
+        var affIndex = arg.indexOf("AffID&");
+        return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
       }
   },
 
@@ -165,7 +173,9 @@ var TrackRequestBg = {
               (merchant.indexOf("hosting24") != -1 &&
                header.value.indexOf("aff=") == 0) ||
               (merchant == "inmotionhosting.com" &&
-               header.value.indexOf("affiliates") != -1)) {
+               header.value.indexOf("affiliates") != -1) ||
+              (merchant == "ipage.com" &&
+               header.value.indexOf("AffCookie=") != -1)) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.

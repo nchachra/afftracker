@@ -24,7 +24,9 @@ var TrackRequestBg = {
                        '|(hosting24\\.com)\\/',
                        '|(inmotionhosting.com)\\/',
                        '|(ipage.com)\\/',
-                       '|(fatcow.com)\\/'].join(''), 'i'),
+                       '|(fatcow.com)\\/',
+                       '|(webhostinghub.com)\\/',
+                       '|(ixwebhosting.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -97,9 +99,13 @@ var TrackRequestBg = {
           return arg.split("%5E", 1)[0];
         }
       } else if (merchant == 'hosting24.com' ||
-                merchant == 'inmotionhosting.com') {
+                merchant == 'inmotionhosting.com' ||
+                merchant == 'webhostinghub.com' ||
+                merchant == 'ixwebhosting.com') {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
+          // and refid=<id> for webhostinghub.com.
+          // and IXAFFILIATE=<id for ixwebhosting.com
           return arg.split(";")[0].split("=")[1];
       } else if (merchant == 'ipage.com' ||
                  merchant == 'fatcow.com') {
@@ -176,8 +182,13 @@ var TrackRequestBg = {
                header.value.indexOf("aff=") == 0) ||
               (merchant == "inmotionhosting.com" &&
                header.value.indexOf("affiliates") != -1) ||
-              (merchant == "ipage.com" &&
-               header.value.indexOf("AffCookie=") != -1)) {
+              ((merchant == "ipage.com" || merchant == "fatcow.com") &&
+               header.value.indexOf("AffCookie=") != -1) ||
+              (merchant == 'webhostinghub.com' &&
+               header.value.indexOf("refid") != -1) ||
+              (merchant == 'ixwebhosting.com' &&
+               header.value.indexOf("IXAFFILIATE=") != -1)
+              ) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {
               // Amazon's affiliate id does not show up in the Cookie.

@@ -26,7 +26,8 @@ var TrackRequestBg = {
                        '|(ipage.com)\\/',
                        '|(fatcow.com)\\/',
                        '|(webhostinghub.com)\\/',
-                       '|(ixwebhosting.com)\\/'].join(''), 'i'),
+                       '|(ixwebhosting.com)\\/',
+                       '|(webhostingpad.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -112,6 +113,10 @@ var TrackRequestBg = {
         // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
         var affIndex = arg.indexOf("AffID&");
         return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
+      } else if (merchant == "webhostingpad.com") {
+        // arg is a url encoded cookie with value:
+        // idev=<affid>----------<urlencodedreferrer>
+        return arg.substring(arg.indexOf("=") + 1, arg.indexOf("-"));
       }
   },
 
@@ -187,7 +192,9 @@ var TrackRequestBg = {
               (merchant == 'webhostinghub.com' &&
                header.value.indexOf("refid") != -1) ||
               (merchant == 'ixwebhosting.com' &&
-               header.value.indexOf("IXAFFILIATE=") != -1)
+               header.value.indexOf("IXAFFILIATE=") != -1) ||
+              (merchant == "webhostingpad.com" &&
+               header.value.indexOf("idev") == 0)
               ) {
             var arg = "";
             if (amazonSites.indexOf(merchant) != -1) {

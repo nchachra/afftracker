@@ -27,7 +27,9 @@ var TrackRequestBg = {
                        '|(fatcow.com)\\/',
                        '|(webhostinghub.com)\\/',
                        '|(ixwebhosting.com)\\/',
-                       '|(webhostingpad.com)\\/'].join(''), 'i'),
+                       '|(webhostingpad.com)\\/',
+                       '|(hostrocket.com)\\/',
+                       '|(arvixe.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -113,9 +115,12 @@ var TrackRequestBg = {
         // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
         var affIndex = arg.indexOf("AffID&");
         return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
-      } else if (merchant == "webhostingpad.com") {
-        // arg is a url encoded cookie with value:
-        // idev=<affid>----------<urlencodedreferrer>
+      } else if (merchant == "webhostingpad.com" ||
+                 merchant == "hostrocket.com" ||
+                 merchant == "arvixe.com") {
+        // webhostingpad: idev=<affid>----------<urlencodedreferrer>
+        // hostrocket.com: idev=<affid>-<referrer>------<hostrocketURL>
+        // arvixe.com idev=<affid>-<referrer>-------<arvixeURL>
         return arg.substring(arg.indexOf("=") + 1, arg.indexOf("-"));
       }
   },
@@ -193,7 +198,9 @@ var TrackRequestBg = {
                header.value.indexOf("refid") != -1) ||
               (merchant == 'ixwebhosting.com' &&
                header.value.indexOf("IXAFFILIATE=") != -1) ||
-              (merchant == "webhostingpad.com" &&
+              ((merchant == "webhostingpad.com" ||
+                merchant == "hostrocket.com" ||
+                merchant == "arvixe.com") &&
                header.value.indexOf("idev") == 0)
               ) {
             var arg = "";

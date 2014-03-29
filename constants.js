@@ -33,7 +33,9 @@ var cookieMap = { "amazon.com": "UserPref",
                   "fatcow.com": "AffCookie",
                   "webhostinghub.com": "refid",
                   "ixwebhosting.com": "IXAFFILIATE",
-                  "webhostingpad.com": "idev"
+                  "webhostingpad.com": "idev",
+                  "hostrocket.com": "idev",
+                  "arvixe.com": "idev"
                  }
 
 // These are included in the above but might be useful later.

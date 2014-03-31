@@ -35,6 +35,15 @@ var TrackRequestBg = {
                        '|(ipower.com)\\/'].join(''), 'i'),
 
   /**
+   * Besides the custom merchant to cookie name matches, we also use
+   * more generic cookie names to report other programs as well.
+   *
+   * @private
+   */
+  cookieRe: RegExp([/*idevaffiliate program*/
+                    'idev='].join(''), 'i'),
+
+  /**
    * User ID key. True across all extensions.
    *
    * @private
@@ -107,11 +116,14 @@ var TrackRequestBg = {
       } else if (merchant == 'hosting24.com' ||
                 merchant == 'inmotionhosting.com' ||
                 merchant == 'webhostinghub.com' ||
-                merchant == 'ixwebhosting.com') {
+                merchant == 'ixwebhosting.com' || 
+                (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
           // and refid=<id> for webhostinghub.com.
           // and IXAFFILIATE=<id for ixwebhosting.com
+          // Sometimes idev appears with just the id: idev=<id>
+          //  and otherwise the check below handles it.
           return arg.split(";")[0].split("=")[1];
       } else if (merchant == 'ipage.com' ||
                  merchant == 'fatcow.com'||
@@ -121,12 +133,12 @@ var TrackRequestBg = {
         // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
         var affIndex = arg.indexOf("AffID&");
         return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
-      } else if (merchant == "webhostingpad.com" ||
-                 merchant == "hostrocket.com" ||
-                 merchant == "arvixe.com") {
+      } else if (arg.indexOf("idev=")  == 0) {
         // webhostingpad: idev=<affid>----------<urlencodedreferrer>
         // hostrocket.com: idev=<affid>-<referrer>------<hostrocketURL>
         // arvixe.com idev=<affid>-<referrer>-------<arvixeURL>
+        // idev is an affiliate program, so there are others that I don't
+        //  uniquely identify.
         return arg.substring(arg.indexOf("=") + 1, arg.indexOf("-"));
       }
   },
@@ -169,17 +181,17 @@ var TrackRequestBg = {
         }
       });
     }
-    if (merchant != "") {
+    //if (merchant != "") {
       var submissionObj = setter.merchant[details.requestId];
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
-        if (header.name.toLowerCase() === "set-cookie") {
-          if (merchant == "bluehost.com" &&
-              header.value.indexOf("domain=.bluehost.com;") == -1) {
-              // Bluehost 301 redirects from tracking URL to bluehost.com and
-              // sends 2 cookies called r. The one set for .bluehost.com is
-              // empty. The real cookie is the one set for www.bluehost.com.
-              if (header.value.indexOf(cookieMap[merchant] + "=") == 0) {
+        if ((merchant == "" && setter.cookieRe.test(header.value)) ||
+            (cookieMap.hasOwnProperty(merchant) &&
+             header.value.indexOf(cookieMap[merchant] + "=") == 0 &&
+             // Bluehost 301 redirects from tracking URL to bluehost.com and
+             // sends 2 cookies called r. The one set for .bluehost.com is
+             // empty. The real cookie is the one set for www.bluehost.com.
+             !(merchant == "bluehost.com" && header.value.indexOf("domain=.bluehost.com;") != -1))) {
                 //(merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
                 var arg = "";
                 if (amazonSites.indexOf(merchant) != -1) {
@@ -237,9 +249,16 @@ var TrackRequestBg = {
                 // In case of main frame, this is the same as landing URL.
                 submissionObj["originFrame"] = details.url;
                 submissionObj["timestamp"] = details.timeStamp;
+                if (merchant == "") {
+                  // We found an affiliate program we didn't know of. Use the
+                  // cookie domain to identify program and append it
+                  // non-persistently to cookieMap.
+                  merchant = cookieDomain.substring(cookieDomain.indexOf(".") + 1);
+                }
                 // We actually only care about the last cookie value written, so this over-writes.
                 var storeObj = {};
                 var storage_key = "AffiliateTracker_" + merchant;
+                console.log("Storage key: " + storage_key);
                 storeObj[storage_key] = {"affiliate" : affId,
                                        "cookie": cookieVal,
                                        "origin": submissionObj["landing"], //TODO: this is confusing
@@ -286,10 +305,8 @@ var TrackRequestBg = {
                    chrome.notifications.clear(setter.notificationId, function() {});
                 }, 3000);
               }
-            }
-          }
         });
-      }
+      //}
   },
 
 
@@ -313,10 +330,13 @@ var TrackRequestBg = {
         }
       });
     }
-    if (merchant != "") {
+    //if (merchant != "") {
+    // if (!setter.merchant.hasOwnProperty(details.requestId)) {
       var newSubmission = {};
       newSubmission["merchant"] = merchant;
+      if (details.tabId >= 0) {
       chrome.tabs.get(details.tabId, function(tab) {
+        // TODO: test if this still works with all request.s
         newSubmission["origin"] = tab.url;
         newSubmission["landing"] = tab.url;
         if (tab.hasOwnProperty("openerTabId")) {
@@ -328,6 +348,7 @@ var TrackRequestBg = {
           newSubmission["newTab"] = false;
         }
       });
+      }
       // Chrome makes sure request ids are unique.
       setter.merchant[details.requestId] = newSubmission;
       console.log("created mew submission object with request: " + details.requestId);
@@ -349,11 +370,10 @@ var TrackRequestBg = {
         if (header.name.toLowerCase() === "referer") {
           if (!amazonSites.indexOf(merchant) != -1 || !setter.merchantRe.test(header.value))
             newSubmission["referer"] = header.value;
-
           }
-        });
-      };
-    },
+      });
+    //};
+  },
 };
 
 

@@ -3,41 +3,44 @@ var AffiliateTrackerPopup = {
   background: chrome.extension.getBackgroundPage(),
 
   /**
-   * Pulls the stored values from storage and populates the DOM.
+   * Appends a row to table element.
    *
-   * @public
+   * @param{Object} tableEl Table to which row should be added.
+   * @param{string} merchant The merchant domain name.
+   * @param{string} cookieName Name of the cookie.
+   * @param{boolean} isMerchantKnown Whether we have the merchant
+   *   in cookie map.
+   *
+   * @private
    */
-  populateDom: function() {
-    var divEl = document.getElementById("merchant-info");
-    var tableEl = document.createElement('table');
-    var rowCounter = 0;
-    var cookieMap = this.background.cookieMap;
-    Object.keys(cookieMap).forEach(function(merchant, index) {
+  createRow: function(tableEl, merchant, cookieName, isMerchantKnown) {
+      var row = null;
       var storeKey = "AffiliateTracker_" + merchant;
       chrome.storage.sync.get(storeKey, function(result) {
         var storeInfo = result[storeKey];
         if (typeof storeInfo != "undefined" && storeInfo != null) {
-          var cookieName = cookieMap[merchant];
           var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
                            "http://www." + storeInfo.cookieDomain :
                            "http://" + storeInfo.cookieDomain;
           chrome.cookies.get({"url": cookieUrl, "name": cookieName},
               function(cookie) {
-                console.log("cookiename: " + cookieName);
-                console.log("cookieurl: " + cookieUrl);
-                console.log("cookie: " +  cookie);
+                //console.log("cookiename: " + cookieName);
+                //console.log("cookieurl: " + cookieUrl);
+                //console.log("cookie: " +  cookie);
             if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
               // Every table's first cell is the icon img.
               var iconImg = document.createElement('img');
               if (merchant.indexOf('buyvip.com') !== -1 ||
                   merchant.indexOf('javari') !== -1) {
                 iconImg.src = "icons/" +  merchant.split('.')[0] + ".png";
-              } else {
+              } else if (isMerchantKnown) {
                 iconImg.src = "icons/" + merchant + ".png";
+              } else {
+                iconImg.src = "icons/unknown.png";
               }
               var iconCell = document.createElement('td');
               iconCell.appendChild(iconImg);
-              var row = document.createElement('tr');
+              row = document.createElement('tr');
               row.appendChild(iconCell);
               infoCell = document.createElement('td');
               infoCell.innerHTML = "Your visit to " +
@@ -47,18 +50,46 @@ var AffiliateTrackerPopup = {
                     "next purchase from <span style='font-weight:bold;'>" +
                     merchant + "</span>";
               row.appendChild(infoCell);
-              tableEl.appendChild(row);
               // Change background color for even numbered rows.
-              if (rowCounter % 2 == 0) {
+              if (tableEl.rows.length % 2 == 0) {
                 row.setAttribute("style", "background-color: #edf0f5;");
               }
-              rowCounter += 1;
+              tableEl.appendChild(row);
             }
         });
       }
     });
-  });
-  divEl.appendChild(tableEl);
+  },
+
+  /**
+   * Pulls the stored values from storage and populates the DOM.
+   *
+   * @public
+   */
+  populateDom: function() {
+    var divEl = document.getElementById("merchant-info");
+    var tableEl = document.createElement('table');
+    var rowCounter = 0;
+    var cookieMap = this.background.cookieMap;
+
+    // We don't identify all merchants in cookieMap. For more generic ones,
+    // we find them using cookie names, and if we stored information
+    // about them previously, we add them to the UI directly.
+    chrome.cookies.getAll({"name": "idev"}, function(cookies) {
+      var popup = AffiliateTrackerPopup;
+      cookies.forEach(function(cookie, index) {
+        var merchant = cookie.domain.substring(cookie.domain.indexOf(".") + 1);
+        if (!cookieMap.hasOwnProperty(merchant)) {
+          popup.createRow(tableEl, merchant, "idev", false);
+        }
+      });
+    });
+
+    Object.keys(cookieMap).forEach(function(merchant, index) {
+      var popup = AffiliateTrackerPopup;
+      popup.createRow(tableEl, merchant, cookieMap[merchant], true);
+    });
+    divEl.appendChild(tableEl);
   }
 };
 

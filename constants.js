@@ -24,18 +24,23 @@ var cookieMap = { "amazon.com": "UserPref",
                   "buyvip.com":  "UserPref",
                   "hostgator.com": "GatorAffiliate",
                   "dreamhost.com": "referred",
-                  "bluehost.com": "r",
-                  "hostmonster.com": "r",
-                  "justhost.com": "r",
-                  "hosting24.com": "aff",
                   "inmotionhosting.com": "affiliates",
                   "ipage.com": "AffCookie",
                   "fatcow.com": "AffCookie",
-                  "webhostinghub.com": "refid",
+                  "startlogic.com": "AffCookie",
+                  "ipower.com": "AffCookie",
+                  "bizland.com": "AffCookie",
                   "ixwebhosting.com": "IXAFFILIATE",
+
                   "webhostingpad.com": "idev",
                   "hostrocket.com": "idev",
-                  "arvixe.com": "idev"
+                  "arvixe.com": "idev",
+                  "webhostinghub.com": "refid",
+                  "bluehost.com": "r",
+                  "hostmonster.com": "r",
+                  "justhost.com": "r",
+                  "hosting24.com": "aff"
+
                  }
 
 // These are included in the above but might be useful later.

@@ -29,7 +29,10 @@ var TrackRequestBg = {
                        '|(ixwebhosting.com)\\/',
                        '|(webhostingpad.com)\\/',
                        '|(hostrocket.com)\\/',
-                       '|(arvixe.com)\\/'].join(''), 'i'),
+                       '|(arvixe.com)\\/',
+                       '|(startlogic.com)\\/',
+                       '|(bizland.com)\\/',
+                       '|(ipower.com)\\/'].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -111,7 +114,10 @@ var TrackRequestBg = {
           // and IXAFFILIATE=<id for ixwebhosting.com
           return arg.split(";")[0].split("=")[1];
       } else if (merchant == 'ipage.com' ||
-                 merchant == 'fatcow.com') {
+                 merchant == 'fatcow.com'||
+                 merchant == 'startlogic.com' ||
+                 merchant == 'bizland.com' ||
+                 merchant == 'ipower.com') {
         // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
         var affIndex = arg.indexOf("AffID&");
         return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
@@ -192,7 +198,9 @@ var TrackRequestBg = {
                header.value.indexOf("aff=") == 0) ||
               (merchant == "inmotionhosting.com" &&
                header.value.indexOf("affiliates") != -1) ||
-              ((merchant == "ipage.com" || merchant == "fatcow.com") &&
+              ((merchant == "ipage.com" || merchant == "fatcow.com" ||
+                merchant == "startlogic.com" || merchant == "bizland.com" ||
+                merchant == "ipower.com") &&
                header.value.indexOf("AffCookie=") != -1) ||
               (merchant == 'webhostinghub.com' &&
                header.value.indexOf("refid") != -1) ||
@@ -336,6 +344,32 @@ var TrackRequestBg = {
     }
     if (merchant != "") {
       var newSubmission = {};
+      newSubmission["merchant"] = merchant;
+      chrome.tabs.get(details.tabId, function(tab) {
+        newSubmission["origin"] = tab.url;
+        newSubmission["landing"] = tab.url;
+        if (tab.hasOwnProperty("openerTabId")) {
+          chrome.tabs.get(tab.openerTabId, function(openerTab) {
+            newSubmission["origin"] = openerTab.url;
+            newSubmission["newTab"] = true;
+          });
+        } else {
+          newSubmission["newTab"] = false;
+        }
+      });
+      // Chrome makes sure request ids are unique.
+      setter.merchant[details.requestId] = newSubmission;
+      console.log("created mew submission object with request: " + details.requestId);
+      // If nothing comes of this request, delete all stored information
+      // about it after 3 min.
+      setTimeout(function() {
+        if (setter.merchant.hasOwnProperty(details.requestId)) {
+          // Delete this object either way
+          console.log("deleting request id: " + details.requestId);
+          delete setter.merchant[details.requestId];
+          }
+      }, 180000);
+
       details.requestHeaders.forEach(function(header) {
         // Ignore amazon redirects to itself.
         // For Go Daddy, we'll end up over-writing some of these values in
@@ -343,23 +377,8 @@ var TrackRequestBg = {
         //   redirects.
         if (header.name.toLowerCase() === "referer") {
           if (!amazonSites.indexOf(merchant) != -1 || !setter.merchantRe.test(header.value))
-                //TODO: this is  aproblem for clients that strip referers...
-            newSubmission["merchant"] = merchant;
             newSubmission["referer"] = header.value;
-            chrome.tabs.get(details.tabId, function(tab) {
-              newSubmission["origin"] = tab.url;
-              newSubmission["landing"] = tab.url;
-              if (tab.hasOwnProperty("openerTabId")) {
-                chrome.tabs.get(tab.openerTabId, function(openerTab) {
-                  newSubmission["origin"] = openerTab.url;
-                  newSubmission["newTab"] = true;
-                });
-              } else {
-                newSubmission["newTab"] = false;
-              }
-            });
-            // Chrome makes sure request ids are unique.
-            setter.merchant[details.requestId] = newSubmission;
+
           }
         });
       };

@@ -174,151 +174,122 @@ var TrackRequestBg = {
       // Amazon.com's UserPref cookie is an affiliate cookie.
       details.responseHeaders.forEach(function(header) {
         if (header.name.toLowerCase() === "set-cookie") {
-          // TODO: use a map for these. This is silly
-          if ((amazonSites.indexOf(merchant) != -1 &&
-               header.value.indexOf("UserPref=") ==0 ) ||
-              (merchant.indexOf("hostgator") != -1 &&
-               header.value.indexOf("GatorAffiliate=") == 0) ||
-              //(merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
-              (merchant.indexOf("dreamhost") != -1 &&
-               header.value.indexOf("referred=") == 0) ||
+          if (merchant == "bluehost.com" &&
+              header.value.indexOf("domain=.bluehost.com;") == -1) {
               // Bluehost 301 redirects from tracking URL to bluehost.com and
               // sends 2 cookies called r. The one set for .bluehost.com is
               // empty. The real cookie is the one set for www.bluehost.com.
-              (merchant.indexOf("bluehost") != -1 &&
-               header.value.indexOf("r=") == 0 &&
-               header.value.indexOf("domain=.bluehost.com;") == -1) ||
-              (merchant.indexOf("justhost") != -1 &&
-               header.value.indexOf("r=") == 0 &&
-               header.value.indexOf("domain=.justhost.com;") == -1) ||
-              (merchant.indexOf("hostmonster") != -1 &&
-               header.value.indexOf("r=") == 0 &&
-               header.value.indexOf("domain=.hostmonster.com;") == -1) ||
-              (merchant.indexOf("hosting24") != -1 &&
-               header.value.indexOf("aff=") == 0) ||
-              (merchant == "inmotionhosting.com" &&
-               header.value.indexOf("affiliates") != -1) ||
-              ((merchant == "ipage.com" || merchant == "fatcow.com" ||
-                merchant == "startlogic.com" || merchant == "bizland.com" ||
-                merchant == "ipower.com") &&
-               header.value.indexOf("AffCookie=") != -1) ||
-              (merchant == 'webhostinghub.com' &&
-               header.value.indexOf("refid") != -1) ||
-              (merchant == 'ixwebhosting.com' &&
-               header.value.indexOf("IXAFFILIATE=") != -1) ||
-              ((merchant == "webhostingpad.com" ||
-                merchant == "hostrocket.com" ||
-                merchant == "arvixe.com") &&
-               header.value.indexOf("idev") == 0)
-              ) {
-            var arg = "";
-            if (amazonSites.indexOf(merchant) != -1) {
-              // Amazon's affiliate id does not show up in the Cookie.
-              arg = details.url;
-            } else {
-              arg = header.value;
-            }
-            var affId = setter.parseAffiliateId(merchant, arg);
-            var cookie = header.value;
-            var cookieVal = (cookie.indexOf(";") == -1) ?
-                             cookie.substring(cookie.indexOf("=")) :
-                             cookie.substring(cookie.indexOf("=") + 1,
-                                              cookie.indexOf(';'));
-            // We don't send the cookie to our server, but check that the
-            // cookie we recorded is the one user still has before displaying
-            // it.
-            submissionObj["cookie"] = cookieVal;
-            submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(CryptoJS.enc.Hex);
+              if (header.value.indexOf(cookieMap[merchant] + "=") == 0) {
+                //(merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
+                var arg = "";
+                if (amazonSites.indexOf(merchant) != -1) {
+                  // Amazon's affiliate id does not show up in the Cookie.
+                  arg = details.url;
+                } else {
+                  arg = header.value;
+                }
+                var affId = setter.parseAffiliateId(merchant, arg);
+                var cookie = header.value;
+                var cookieVal = (cookie.indexOf(";") == -1) ?
+                              cookie.substring(cookie.indexOf("=")) :
+                              cookie.substring(cookie.indexOf("=") + 1,
+                                               cookie.indexOf(';'));
+                // We don't send the cookie to our server, but check that the
+                // cookie we recorded is the one user still has before displaying
+                // it.
+                submissionObj["cookie"] = cookieVal;
+                submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(CryptoJS.enc.Hex);
 
-            var cookieDomain = "";
-            if (cookie.indexOf("domain=") != -1) {
-              var domainStart = cookie.indexOf("domain=");
-              if (cookie.indexOf(";", domainStart) == -1) {
-                // domain= is not terminated by ; because it's at the end.
-                cookieDomain = cookie.substring(domainStart + 7);
-              } else {
-                cookieDomain = cookie.substring(domainStart+ 7, cookie.indexOf(";", domainStart));
-              }
-            } else {
-              // If not specified, the domain of the cookie is the domain of url.
-              var domainStart = details.url.indexOf("//") + 2;
-              cookieDomain = details.url.substring(domainStart, details.url.indexOf("/", domainStart));
-            }
-            submissionObj["cookieDomain"] = cookieDomain;
-
-            var cookiePath = "";
-            if (cookie.indexOf("path=") != -1) {
-              var pathStart = cookie.indexOf("path=");
-              cookiePath = cookie.substring(pathStart + 5, cookie.indexOf(";", pathStart));
-            } else {
-              // If not specified the default is the path of the URL setting the cookie.
-              //TODO: verify
-            }
-            submissionObj["cookiePath"] = cookiePath;
-
-            chrome.storage.sync.get(setter.userIdKey, function(result) {
-              if (result.hasOwnProperty(setter.userIdKey)) {
-                submissionObj["userId"] = result[setter.userIdKey];
-              }
-            });
-
-            submissionObj["affId"] = affId;
-            submissionObj["type"] = details.type;
-            // In case of main frame, this is the same as landing URL.
-            submissionObj["originFrame"] = details.url;
-            submissionObj["timestamp"] = details.timeStamp;
-            // We actually only care about the last cookie value written, so this over-writes.
-            var storeObj = {};
-            var storage_key = "AffiliateTracker_" + merchant;
-            storeObj[storage_key] = {"affiliate" : affId,
-                                      "cookie": cookieVal,
-                                      "origin": submissionObj["landing"], //TODO: this is confusing
-                                      "cookieDomain": submissionObj["cookieDomain"],
-                                      "cookiePath": submissionObj["cookiePath"]};
-            chrome.storage.sync.set(storeObj, function() {console.log("saved");});
-
-            // We need the DOM element to be rendered to get its properties.
-            // Sadly there is no reliable to do this. If the element is
-            // already deleted within 3 seconds, we are out of luck.
-            setTimeout(function() {
-              if (submissionObj.hasOwnProperty("cookie")) {
-                submissionObj["frameProperties"] = setter.getFrameProperties(
-                    details.url, details.type, details.tabId);
-                // Before sending the data, remove the cookie value from the object
-                // for privacy reasons.
-                delete submissionObj["cookie"];
-                var xhr = new XMLHttpRequest();
-                //xhr.open("POST", "http://127.0.0.1:5000/upload");
-                xhr.open("POST", "http://secret-sea-1620.herokuapp.com/upload");
-                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                xhr.send(JSON.stringify(submissionObj));
-                // TODO: maybe check for success of xhr
-              }
-              // Delete this object either way
-              delete submissionObj;
-            }, 3000);
-
-            // TODO: for sites pushing multiple cookies, notifications are't handled well.
-            setter.cookieCounter += 1;
-            var notificationOpts = { type: 'basic',
-                iconUrl: 'icon.png',
-                title: merchant + " cookie",
-                message: "From " + submissionObj["landing"]
-              }
-            chrome.notifications.update(
-              setter.notificationId, notificationOpts, function(wasUpdated) {
-                  if (!wasUpdated) {
-                    chrome.notifications.create(setter.notificationId,
-                        notificationOpts, function() {});
+                var cookieDomain = "";
+                if (cookie.indexOf("domain=") != -1) {
+                  var domainStart = cookie.indexOf("domain=");
+                  if (cookie.indexOf(";", domainStart) == -1) {
+                    // domain= is not terminated by ; because it's at the end.
+                    cookieDomain = cookie.substring(domainStart + 7);
+                  } else {
+                    cookieDomain = cookie.substring(domainStart+ 7, cookie.indexOf(";", domainStart));
                   }
-              });
-            setTimeout(function(){
-                chrome.notifications.clear(setter.notificationId, function() {});
-            }, 3000);
+                } else {
+                  // If not specified, the domain of the cookie is the domain of url.
+                  var domainStart = details.url.indexOf("//") + 2;
+                  cookieDomain = details.url.substring(domainStart, details.url.indexOf("/", domainStart));
+                }
+                submissionObj["cookieDomain"] = cookieDomain;
+
+                var cookiePath = "";
+                if (cookie.indexOf("path=") != -1) {
+                  var pathStart = cookie.indexOf("path=");
+                  cookiePath = cookie.substring(pathStart + 5, cookie.indexOf(";", pathStart));
+                } else {
+                  // If not specified the default is the path of the URL setting the cookie.
+                  //TODO: verify
+                }
+                submissionObj["cookiePath"] = cookiePath;
+
+                chrome.storage.sync.get(setter.userIdKey, function(result) {
+                  if (result.hasOwnProperty(setter.userIdKey)) {
+                    submissionObj["userId"] = result[setter.userIdKey];
+                  }
+                });
+
+                submissionObj["affId"] = affId;
+                submissionObj["type"] = details.type;
+                // In case of main frame, this is the same as landing URL.
+                submissionObj["originFrame"] = details.url;
+                submissionObj["timestamp"] = details.timeStamp;
+                // We actually only care about the last cookie value written, so this over-writes.
+                var storeObj = {};
+                var storage_key = "AffiliateTracker_" + merchant;
+                storeObj[storage_key] = {"affiliate" : affId,
+                                       "cookie": cookieVal,
+                                       "origin": submissionObj["landing"], //TODO: this is confusing
+                                       "cookieDomain": submissionObj["cookieDomain"],
+                                       "cookiePath": submissionObj["cookiePath"]};
+                chrome.storage.sync.set(storeObj, function() {console.log("saved");});
+
+                // We need the DOM element to be rendered to get its properties.
+                // Sadly there is no reliable to do this. If the element is
+                // already deleted within 3 seconds, we are out of luck.
+                setTimeout(function() {
+                  if (submissionObj.hasOwnProperty("cookie")) {
+                    submissionObj["frameProperties"] = setter.getFrameProperties(
+                      details.url, details.type, details.tabId);
+                    // Before sending the data, remove the cookie value from the object
+                    // for privacy reasons.
+                    delete submissionObj["cookie"];
+                    var xhr = new XMLHttpRequest();
+                    //xhr.open("POST", "http://127.0.0.1:5000/upload");
+                    xhr.open("POST", "http://secret-sea-1620.herokuapp.com/upload");
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    xhr.send(JSON.stringify(submissionObj));
+                    // TODO: maybe check for success of xhr
+                  }
+                  // Delete this object either way
+                  delete submissionObj;
+                }, 3000);
+
+               // TODO: for sites pushing multiple cookies, notifications are't handled well.
+                setter.cookieCounter += 1;
+                var notificationOpts = { type: 'basic',
+                    iconUrl: 'icon.png',
+                    title: merchant + " cookie",
+                    message: "From " + submissionObj["landing"]
+                }
+                chrome.notifications.update(
+                  setter.notificationId, notificationOpts, function(wasUpdated) {
+                      if (!wasUpdated) {
+                        chrome.notifications.create(setter.notificationId,
+                            notificationOpts, function() {});
+                      }
+                });
+                setTimeout(function(){
+                   chrome.notifications.clear(setter.notificationId, function() {});
+                }, 3000);
+              }
+            }
           }
-        }
-      });
-    }
+        });
+      }
   },
 
 

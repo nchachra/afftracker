@@ -36,7 +36,19 @@ var TrackRequestBg = {
                        
                        /* Travel/Booking sites*/
                        '|(hotelscombined.com)\\/',
-                       '|brands.(datahc.com)\\/'].join(''), 'i'),
+                       '|brands.(datahc.com)\\/',
+
+                       /* Envato marketplace sites */
+                       '|(themeforest.net)\\/',
+                       '|(codecanyon.net)\\/',
+                       '|(videohive.net)\\/',
+                       '|(audiojungle.net)\\/',
+                       '|(graphicriver.net)\\/',
+                       '|(photodune.net)\\/',
+                       '|(3docean.net.net)\\/',
+                       '|(activeden.net)\\/',
+                       '|(envato.com)\\/',
+                       ].join(''), 'i'),
 
   /**
    * Besides the custom merchant to cookie name matches, we also use
@@ -169,6 +181,7 @@ var TrackRequestBg = {
                 arg.indexOf("amember_aff_id=") == 0 ||
                 arg.indexOf("a_aid=") == 0 ||
                 arg.indexOf("affiliate=") == 0 ||
+                arg.indexOf("referring_user=") == 0 || //Envato sites
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

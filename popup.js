@@ -33,7 +33,12 @@ var AffiliateTrackerPopup = {
             } else if (merchant.indexOf("datahc.com") != -1) {
               // It's the same program.
               iconImg.src = "icons/hotelscombined.com.png";
-            } else if (isMerchantKnown) {
+            } else if (["themeforest.net", "codecanyon.net", "videohive.net",
+                        "audiojungle.net", "graphicriver.net", "photodune.net",
+                        "3docrean.net", "activeden.net", "envato.com"].
+                        indexOf(merchant) != -1){
+              iconImg.src = "icons/envato.com.png";
+            }else if (isMerchantKnown) {
               iconImg.src = "icons/" + merchant + ".png";
             } else {
               iconImg.src = "icons/unknown.png";

@@ -5,7 +5,9 @@ var amazonSites = ["amazon.com", "amazon.de", "amazon.at", "amazon.ca", "amazon.
                     "javari.co.uk", "javari.de", "javari.fr", "javari.jp",
                     "buyvip.com"];
 
-var cookieMap = { "amazon.com": "UserPref",
+
+var cookieMap = { /* Amazon sites */
+                  "amazon.com": "UserPref",
                   "amazon.de": "UserPref",
                   "amazon.at": "UserPref",
                   "amazon.ca": "UserPref",
@@ -22,6 +24,8 @@ var cookieMap = { "amazon.com": "UserPref",
                   "javari.fr": "UserPref",
                   "javari.jp": "UserPref",
                   "buyvip.com":  "UserPref",
+
+                  /* Hosting sites */
                   "hostgator.com": "GatorAffiliate",
                   "dreamhost.com": "referred",
                   "inmotionhosting.com": "affiliates",
@@ -39,8 +43,21 @@ var cookieMap = { "amazon.com": "UserPref",
                   "bluehost.com": "r",
                   "hostmonster.com": "r",
                   "justhost.com": "r",
+
+                  /* Hotels/booking sites*/
                   "hotelscombined.com": "a_aid",
                   "datahc.com": "a_aid", // This is hotelscombined too.
+
+                  /* Envato marketplaces sites */
+                  "themeforest.net": "referring_user",
+                  "codecanyon.net": "referring_user",
+                  "videohive.net": "referring_user",
+                  "audiojungle.net": "referring_user",
+                  "graphicriver.net": "referring_user",
+                  "photodune.net": "referring_user",
+                  "3docean.net": "referring_user",
+                  "activeden.net": "referring_user",
+                  "envato.com": "referring_user",
                  };
 
 

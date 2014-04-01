@@ -40,11 +40,11 @@ var TrackRequestBg = {
    *
    * @private
    */
-  cookieRe: RegExp([/*idevaffiliate program*/
-                    'idev=',
+  cookieRe: RegExp(['idev=', /*idevaffiliate program*/
                     '|refid=',
                     '|aff=',
-                    '|WHMCSAffiliateID='].join(''), 'i'),
+                    '|WHMCSAffiliateID=',
+                    '|amember_aff_id='].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -159,6 +159,7 @@ var TrackRequestBg = {
                 arg.indexOf("refid=") == 0 ||
                 arg.indexOf("aff=") == 0 ||
                 arg.indexOf("WHMCSAffiliateID=") == 0 ||
+                arg.indexOf("amember_aff_id=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

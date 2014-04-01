@@ -45,7 +45,8 @@ var cookieMap = { "amazon.com": "UserPref",
 var miscCookies = ["idev",
                    "refid",
                    "aff", /* Results in a lot of porn cookies...*/
-                   "WHMCSAffiliateID"];
+                   "WHMCSAffiliateID",
+                   "amember_aff_id"];
 
 
 // These are included in the above but might be useful later.

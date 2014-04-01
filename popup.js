@@ -14,49 +14,46 @@ var AffiliateTrackerPopup = {
    * @private
    */
   createRow: function(tableEl, merchant, cookieName, isMerchantKnown) {
-      var row = null;
-      var storeKey = "AffiliateTracker_" + merchant;
-      chrome.storage.sync.get(storeKey, function(result) {
-        var storeInfo = result[storeKey];
-        if (typeof storeInfo != "undefined" && storeInfo != null) {
-          var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
-                           "http://www." + storeInfo.cookieDomain :
-                           "http://" + storeInfo.cookieDomain;
-          chrome.cookies.get({"url": cookieUrl, "name": cookieName},
-              function(cookie) {
-                //console.log("cookiename: " + cookieName);
-                //console.log("cookieurl: " + cookieUrl);
-                //console.log("cookie: " +  cookie);
-            if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
-              // Every table's first cell is the icon img.
-              var iconImg = document.createElement('img');
-              if (merchant.indexOf('buyvip.com') !== -1 ||
-                  merchant.indexOf('javari') !== -1) {
-                iconImg.src = "icons/" +  merchant.split('.')[0] + ".png";
-              } else if (isMerchantKnown) {
-                iconImg.src = "icons/" + merchant + ".png";
-              } else {
-                iconImg.src = "icons/unknown.png";
-              }
-              var iconCell = document.createElement('td');
-              iconCell.appendChild(iconImg);
-              row = document.createElement('tr');
-              row.appendChild(iconCell);
-              infoCell = document.createElement('td');
-              infoCell.innerHTML = "Your visit to " +
+    var row = null;
+    var storeKey = "AffiliateTracker_" + merchant;
+    chrome.storage.sync.get(storeKey, function(result) {
+      var storeInfo = result[storeKey];
+      if (typeof storeInfo != "undefined" && storeInfo != null) {
+        var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
+                         "http://www." + storeInfo.cookieDomain :
+                         "http://" + storeInfo.cookieDomain;
+        chrome.cookies.get({"url": cookieUrl, "name": cookieName},
+            function(cookie) {
+          if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
+            // Every table's first cell is the icon img.
+            var iconImg = document.createElement('img');
+            if (merchant.indexOf('buyvip.com') !== -1 ||
+              merchant.indexOf('javari') !== -1) {
+              iconImg.src = "icons/" +  merchant.split('.')[0] + ".png";
+            } else if (isMerchantKnown) {
+              iconImg.src = "icons/" + merchant + ".png";
+            } else {
+              iconImg.src = "icons/unknown.png";
+            }
+            var iconCell = document.createElement('td');
+            iconCell.appendChild(iconImg);
+            row = document.createElement('tr');
+            row.appendChild(iconCell);
+            infoCell = document.createElement('td');
+            infoCell.innerHTML = "Your visit to " +
                     "<span style='font-weight:bold;'>" + storeInfo.origin +
                     "</span> will earn affiliate " +
                     "<span style='font-weight:bold;'>" +
                     storeInfo.affiliate + "</span> a commission on your " +
                     "next purchase from <span style='font-weight:bold;'>" +
                     merchant + "</span>";
-              row.appendChild(infoCell);
-              // Change background color for even numbered rows.
-              if (tableEl.rows.length % 2 == 0) {
-                row.setAttribute("style", "background-color: #edf0f5;");
-              }
-              tableEl.appendChild(row);
+            row.appendChild(infoCell);
+            // Change background color for even numbered rows.
+            if (tableEl.rows.length % 2 == 0) {
+              row.setAttribute("style", "background-color: #edf0f5;");
             }
+            tableEl.appendChild(row);
+          }
         });
       }
     });

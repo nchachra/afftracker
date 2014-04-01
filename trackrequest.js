@@ -43,7 +43,8 @@ var TrackRequestBg = {
   cookieRe: RegExp([/*idevaffiliate program*/
                     'idev=',
                     '|refid=',
-                    '|aff='].join(''), 'i'),
+                    '|aff=',
+                    '|WHMCSAffiliateID='].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -93,7 +94,7 @@ var TrackRequestBg = {
       // If not specified, defaults depend on parameter.
       if (parameter == "domain") {
         // arg is the url. Default domain is the domain of document.
-        var start = details.url.indexOf("//") + 2;
+        var start = arg.indexOf("//") + 2;
         value = arg.substring(start, arg.indexOf("/", start));
       } else if (parameter == "path") {
         //TODO: what's the path default?
@@ -157,6 +158,7 @@ var TrackRequestBg = {
                 merchant == 'ixwebhosting.com' ||
                 arg.indexOf("refid=") == 0 ||
                 arg.indexOf("aff=") == 0 ||
+                arg.indexOf("WHMCSAffiliateID=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
@@ -282,8 +284,8 @@ var TrackRequestBg = {
                   // We found an affiliate program we didn't know of. Use the
                   // cookie domain to identify program and append it
                   // non-persistently to cookieMap.
-                  merchant = cookieDomain.substring(
-                             cookieDomain.indexOf(".") + 1);
+                  merchant = submissionObj["cookieDomain"].substring(
+                             submissionObj["cookieDomain"].indexOf(".") + 1);
                   isMerchantKnown = false;
                 }
                 submissionObj["isMerchantKnown"] = isMerchantKnown;

@@ -49,7 +49,8 @@ var TrackRequestBg = {
                     '|aff=',
                     '|WHMCSAffiliateID=',
                     '|amember_aff_id=',
-                    '|a_aid=' /*Hotelscombined and likely others use it*/
+                    '|a_aid=', /*Hotelscombined and likely others use it*/
+                    '|affiliate=',
                     ].join(''), 'i'),
 
   /**
@@ -167,6 +168,7 @@ var TrackRequestBg = {
                 arg.indexOf("WHMCSAffiliateID=") == 0 ||
                 arg.indexOf("amember_aff_id=") == 0 ||
                 arg.indexOf("a_aid=") == 0 ||
+                arg.indexOf("affiliate=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

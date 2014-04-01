@@ -49,7 +49,8 @@ var miscCookies = ["idev",
                    "aff", /* Results in a lot of porn cookies...*/
                    "WHMCSAffiliateID",
                    "amember_aff_id",
-                   "a_aid"];
+                   "a_aid",
+                   "affiliate"];
 
 
 // These are included in the above but might be useful later.

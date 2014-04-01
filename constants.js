@@ -39,6 +39,8 @@ var cookieMap = { "amazon.com": "UserPref",
                   "bluehost.com": "r",
                   "hostmonster.com": "r",
                   "justhost.com": "r",
+                  "hotelscombined.com": "a_aid",
+                  "datahc.com": "a_aid", // This is hotelscombined too.
                  };
 
 
@@ -46,7 +48,8 @@ var miscCookies = ["idev",
                    "refid",
                    "aff", /* Results in a lot of porn cookies...*/
                    "WHMCSAffiliateID",
-                   "amember_aff_id"];
+                   "amember_aff_id",
+                   "a_aid"];
 
 
 // These are included in the above but might be useful later.

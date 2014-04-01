@@ -30,6 +30,9 @@ var AffiliateTrackerPopup = {
             if (merchant.indexOf('buyvip.com') !== -1 ||
               merchant.indexOf('javari') !== -1) {
               iconImg.src = "icons/" +  merchant.split('.')[0] + ".png";
+            } else if (merchant.indexOf("datahc.com") != -1) {
+              // It's the same program.
+              iconImg.src = "icons/hotelscombined.com.png";
             } else if (isMerchantKnown) {
               iconImg.src = "icons/" + merchant + ".png";
             } else {

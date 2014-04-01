@@ -32,7 +32,11 @@ var TrackRequestBg = {
                        '|(arvixe.com)\\/',
                        '|(startlogic.com)\\/',
                        '|(bizland.com)\\/',
-                       '|(ipower.com)\\/'].join(''), 'i'),
+                       '|(ipower.com)\\/',
+                       
+                       /* Travel/Booking sites*/
+                       '|(hotelscombined.com)\\/',
+                       '|brands.(datahc.com)\\/'].join(''), 'i'),
 
   /**
    * Besides the custom merchant to cookie name matches, we also use
@@ -44,7 +48,9 @@ var TrackRequestBg = {
                     '|refid=',
                     '|aff=',
                     '|WHMCSAffiliateID=',
-                    '|amember_aff_id='].join(''), 'i'),
+                    '|amember_aff_id=',
+                    '|a_aid=' /*Hotelscombined and likely others use it*/
+                    ].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -160,6 +166,7 @@ var TrackRequestBg = {
                 arg.indexOf("aff=") == 0 ||
                 arg.indexOf("WHMCSAffiliateID=") == 0 ||
                 arg.indexOf("amember_aff_id=") == 0 ||
+                arg.indexOf("a_aid=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

@@ -31,17 +31,21 @@ var cookieMap = { "amazon.com": "UserPref",
                   "ipower.com": "AffCookie",
                   "bizland.com": "AffCookie",
                   "ixwebhosting.com": "IXAFFILIATE",
-
                   "webhostingpad.com": "idev",
                   "hostrocket.com": "idev",
                   "arvixe.com": "idev",
                   "webhostinghub.com": "refid",
+                  "hosting24.com": "aff",
                   "bluehost.com": "r",
                   "hostmonster.com": "r",
                   "justhost.com": "r",
-                  "hosting24.com": "aff"
+                 };
 
-                 }
+
+var miscCookies = ["idev",
+                   "refid",
+                   "aff" /* Results in a lot of porn cookies...*/];
+
 
 // These are included in the above but might be useful later.
 // joyo.com redirects to amazon.cn

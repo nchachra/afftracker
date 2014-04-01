@@ -45,7 +45,8 @@ var AffiliateTrackerPopup = {
               infoCell = document.createElement('td');
               infoCell.innerHTML = "Your visit to " +
                     "<span style='font-weight:bold;'>" + storeInfo.origin +
-                    "</span> will earn <span style='font-weight:bold;'>" +
+                    "</span> will earn affiliate " +
+                    "<span style='font-weight:bold;'>" +
                     storeInfo.affiliate + "</span> a commission on your " +
                     "next purchase from <span style='font-weight:bold;'>" +
                     merchant + "</span>";
@@ -71,17 +72,21 @@ var AffiliateTrackerPopup = {
     var tableEl = document.createElement('table');
     var rowCounter = 0;
     var cookieMap = this.background.cookieMap;
+    var miscCookies = this.background.miscCookies;
 
     // We don't identify all merchants in cookieMap. For more generic ones,
     // we find them using cookie names, and if we stored information
     // about them previously, we add them to the UI directly.
-    chrome.cookies.getAll({"name": "idev"}, function(cookies) {
-      var popup = AffiliateTrackerPopup;
-      cookies.forEach(function(cookie, index) {
-        var merchant = cookie.domain.substring(cookie.domain.indexOf(".") + 1);
-        if (!cookieMap.hasOwnProperty(merchant)) {
-          popup.createRow(tableEl, merchant, "idev", false);
-        }
+
+    miscCookies.forEach(function(cookieName, index) {
+      chrome.cookies.getAll({"name": cookieName}, function(cookies) {
+        var popup = AffiliateTrackerPopup;
+        cookies.forEach(function(cookie, index) {
+          var merchant = cookie.domain.substring(cookie.domain.indexOf(".") + 1);
+          if (!cookieMap.hasOwnProperty(merchant)) {
+            popup.createRow(tableEl, merchant, cookieName, false);
+          }
+        });
       });
     });
 

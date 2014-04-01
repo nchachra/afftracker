@@ -41,7 +41,9 @@ var TrackRequestBg = {
    * @private
    */
   cookieRe: RegExp([/*idevaffiliate program*/
-                    'idev='].join(''), 'i'),
+                    'idev=',
+                    '|refid=',
+                    '|aff='].join(''), 'i'),
 
   /**
    * User ID key. True across all extensions.
@@ -115,8 +117,9 @@ var TrackRequestBg = {
         }
       } else if (merchant == 'hosting24.com' ||
                 merchant == 'inmotionhosting.com' ||
-                merchant == 'webhostinghub.com' ||
-                merchant == 'ixwebhosting.com' || 
+                merchant == 'ixwebhosting.com' ||
+                arg.indexOf("refid=") == 0 ||
+                arg.indexOf("aff=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
@@ -153,11 +156,11 @@ var TrackRequestBg = {
    * @private
    */
   getFrameProperties: function(url, frameType, tabId) {
-    console.log("trying to get frame properties for " + url + " frame: " + frameType + " for tab: " + tabId);
+    //console.log("trying to get frame properties for " + url + " frame: " + frameType + " for tab: " + tabId);
     var properties = {};
     if (frameType != 'main_frame') {
       chrome.tabs.sendMessage(tabId, {"method": "getFrame", "frameType": frameType}, function(response) {
-        console.log(response);
+        //console.log(response);
         //properties = response.data;
       });
     }
@@ -176,23 +179,30 @@ var TrackRequestBg = {
     var merchant = "";
     if(setter.merchantRe.test(details.url)) {
       details.url.match(setter.merchantRe).forEach(function(matched, index) {
-        if (index != 0 && typeof matched != "undefined") {
+        if (index != 0 && typeof matched != "undefined" && merchant == "") {
             merchant = matched;
         }
       });
     }
     //if (merchant != "") {
       var submissionObj = setter.merchant[details.requestId];
-      // Amazon.com's UserPref cookie is an affiliate cookie.
+      // TODO: I may not need to loop through all headers.
       details.responseHeaders.forEach(function(header) {
-        if ((merchant == "" && setter.cookieRe.test(header.value)) ||
-            (cookieMap.hasOwnProperty(merchant) &&
-             header.value.indexOf(cookieMap[merchant] + "=") == 0 &&
-             // Bluehost 301 redirects from tracking URL to bluehost.com and
-             // sends 2 cookies called r. The one set for .bluehost.com is
-             // empty. The real cookie is the one set for www.bluehost.com.
-             !(merchant == "bluehost.com" && header.value.indexOf("domain=.bluehost.com;") != -1))) {
-                //(merchant.indexOf("godaddy") != -1 /* We will pares more than one cookie for godaddy*/) ||
+        if (header.name.toLowerCase() == "set-cookie") {
+          console.log(cookieMap[merchant]);
+        }
+        if  (header.name.toLowerCase() == "set-cookie" &&
+            ((merchant == "" && setter.cookieRe.test(header.value)) ||
+             (cookieMap.hasOwnProperty(merchant) &&
+              header.value.indexOf(cookieMap[merchant] + "=") == 0 &&
+              // Bluehost 301 redirects from tracking URL to bluehost.com and
+              // sends 2 cookies called r. The one set for .bluehost.com is
+              // empty. The real cookie is the one set for www.bluehost.com.
+              !(merchant == "bluehost.com" && header.value.indexOf("domain=.bluehost.com;") != -1)
+              )
+             )
+            ) {
+                //(merchant.indexOf("godaddy") != -1 /* We will parse more than one cookie for godaddy*/) ||
                 var arg = "";
                 if (amazonSites.indexOf(merchant) != -1) {
                   // Amazon's affiliate id does not show up in the Cookie.
@@ -202,6 +212,7 @@ var TrackRequestBg = {
                 }
                 var affId = setter.parseAffiliateId(merchant, arg);
                 var cookie = header.value;
+                var cookieName = header.value.substring(0, header.value.indexOf("="));
                 var cookieVal = (cookie.indexOf(";") == -1) ?
                               cookie.substring(cookie.indexOf("=")) :
                               cookie.substring(cookie.indexOf("=") + 1,
@@ -249,22 +260,28 @@ var TrackRequestBg = {
                 // In case of main frame, this is the same as landing URL.
                 submissionObj["originFrame"] = details.url;
                 submissionObj["timestamp"] = details.timeStamp;
+                var isMerchantKnown = true;
                 if (merchant == "") {
                   // We found an affiliate program we didn't know of. Use the
                   // cookie domain to identify program and append it
                   // non-persistently to cookieMap.
                   merchant = cookieDomain.substring(cookieDomain.indexOf(".") + 1);
+                  isMerchantKnown = false;
                 }
                 // We actually only care about the last cookie value written, so this over-writes.
                 var storeObj = {};
                 var storage_key = "AffiliateTracker_" + merchant;
-                console.log("Storage key: " + storage_key);
+                //console.log("Storage key: " + storage_key);
                 storeObj[storage_key] = {"affiliate" : affId,
                                        "cookie": cookieVal,
                                        "origin": submissionObj["landing"], //TODO: this is confusing
                                        "cookieDomain": submissionObj["cookieDomain"],
-                                       "cookiePath": submissionObj["cookiePath"]};
-                chrome.storage.sync.set(storeObj, function() {console.log("saved");});
+                                       "cookiePath": submissionObj["cookiePath"],
+                                       "cookieName": cookieName,
+                                       "isMerchantKnown": isMerchantKnown};
+                chrome.storage.sync.set(storeObj, function() {
+                  //console.log("saved");
+                });
 
                 // We need the DOM element to be rendered to get its properties.
                 // Sadly there is no reliable to do this. If the element is
@@ -351,16 +368,17 @@ var TrackRequestBg = {
       }
       // Chrome makes sure request ids are unique.
       setter.merchant[details.requestId] = newSubmission;
-      console.log("created mew submission object with request: " + details.requestId);
+      //console.log("created mew submission object with request: " + details.requestId);
       // If nothing comes of this request, delete all stored information
-      // about it after 3 min.
+      // about it after 10 seconds.
       setTimeout(function() {
         if (setter.merchant.hasOwnProperty(details.requestId)) {
           // Delete this object either way
-          console.log("deleting request id: " + details.requestId);
+          //console.log("deleting request id: " + details.requestId);
           delete setter.merchant[details.requestId];
+          console.log("deleting request id: "  + details.requestId);
           }
-      }, 180000);
+      }, 10000);
 
       details.requestHeaders.forEach(function(header) {
         // Ignore amazon redirects to itself.
@@ -368,7 +386,7 @@ var TrackRequestBg = {
         //   response because CJ makes things complicated with a lot of
         //   redirects.
         if (header.name.toLowerCase() === "referer") {
-          if (!amazonSites.indexOf(merchant) != -1 || !setter.merchantRe.test(header.value))
+          //if (!amazonSites.indexOf(merchant) != -1 || !setter.merchantRe.test(header.value))
             newSubmission["referer"] = header.value;
           }
       });
@@ -399,6 +417,8 @@ chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
   var setter = TrackRequestBg;
   if (!result.hasOwnProperty(setter.userIdKey)) {
     var newIdObj = setter.generateUserId();
-    chrome.storage.sync.set(newIdObj, function() {console.log("created user id");});
+    chrome.storage.sync.set(newIdObj, function() {
+      //console.log("created user id");
+    });
   }
 });

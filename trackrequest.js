@@ -33,7 +33,7 @@ var TrackRequestBg = {
                        '|(startlogic.com)\\/',
                        '|(bizland.com)\\/',
                        '|(ipower.com)\\/',
-                       
+
                        /* Travel/Booking sites*/
                        '|(hotelscombined.com)\\/',
                        '|brands.(datahc.com)\\/',
@@ -63,6 +63,7 @@ var TrackRequestBg = {
                     '|amember_aff_id=',
                     '|a_aid=', /*Hotelscombined and likely others use it*/
                     '|affiliate=',
+                    '|AffiliateWizAffiliateID=',
                     ].join(''), 'i'),
 
   /**
@@ -205,6 +206,11 @@ var TrackRequestBg = {
         // idev is an affiliate program, so there are others that I don't
         //  uniquely identify.
         return arg.substring(arg.indexOf("=") + 1, arg.indexOf("-"));
+      } else if (arg.indexOf("AffiliateWizAffiliateID=") == 0){
+        // AffiliateWizAffiliateID=AffiliateID=41266&ClickBannerID=0&
+        //  SubAffiliateID=t6555&Custom=&ClickDateTime=9/20/2013 1:35:07 AM
+        return arg.substring(arg.indexOf("=AffiliateID=") + 13,
+                             arg.indexOf("&"));
       }
   },
 

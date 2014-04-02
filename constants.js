@@ -67,7 +67,8 @@ var miscCookies = ["idev",
                    "WHMCSAffiliateID",
                    "amember_aff_id",
                    "a_aid",
-                   "affiliate"];
+                   "affiliate",
+                   "AffiliateWizAffiliateID"];
 
 
 // These are included in the above but might be useful later.

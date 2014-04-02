@@ -43,6 +43,7 @@ var cookieMap = { /* Amazon sites */
                   "bluehost.com": "r",
                   "hostmonster.com": "r",
                   "justhost.com": "r",
+                  "lunarpages.com": "lunarsale",
 
                   /* Hotels/booking sites*/
                   "hotelscombined.com": "a_aid",
@@ -77,7 +78,7 @@ var miscCookies = ["idev",
                    // Most of these are affiliate cookies afaik. But some look
                    // like referers. I'll exclude ones that are obviously URLs.
                    // May need some post-processing cleanup.
-                   "ref",
+                   //"ref",
                    ];
 
 

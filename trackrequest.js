@@ -33,6 +33,7 @@ var TrackRequestBg = {
                        '|(startlogic.com)\\/',
                        '|(bizland.com)\\/',
                        '|(ipower.com)\\/',
+                       '|(lunarpages.com)\\/',
 
                        /* Travel/Booking sites*/
                        '|(hotelscombined.com)\\/',
@@ -72,7 +73,7 @@ var TrackRequestBg = {
                     // Exclude anything that's obviously a URL (referrer)
                     // This is described here:
                     // http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
-                    '|^ref=((?!http:).)*',
+                    //'|^ref=((?!http:).)*',
                     ].join(''), 'i'),
 
   /**
@@ -195,7 +196,8 @@ var TrackRequestBg = {
                 arg.indexOf("aff_tag=") == 0 || //hidemyass
                 arg.indexOf("referred_by=") == 0 ||
                 arg.indexOf("referal=") == 0 ||
-                arg.indexOf("ref=") == 0 ||
+                arg.indexOf("lunarsale=") == 0 || //lunarpages
+                //arg.indexOf("ref=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

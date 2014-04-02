@@ -58,6 +58,9 @@ var cookieMap = { /* Amazon sites */
                   "3docean.net": "referring_user",
                   "activeden.net": "referring_user",
                   "envato.com": "referring_user",
+
+                  /* Others */
+                  "hidemyass.com": "aff_tag",
                  };
 
 

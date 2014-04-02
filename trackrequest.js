@@ -48,6 +48,9 @@ var TrackRequestBg = {
                        '|(3docean.net.net)\\/',
                        '|(activeden.net)\\/',
                        '|(envato.com)\\/',
+
+                       /* Others */
+                       '|(hidemyass.com)\\/',
                        ].join(''), 'i'),
 
   /**
@@ -183,6 +186,7 @@ var TrackRequestBg = {
                 arg.indexOf("a_aid=") == 0 ||
                 arg.indexOf("affiliate=") == 0 ||
                 arg.indexOf("referring_user=") == 0 || //Envato sites
+                arg.indexOf("aff_tag=") == 0 || //hidemyass
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

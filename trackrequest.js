@@ -59,14 +59,20 @@ var TrackRequestBg = {
    *
    * @private
    */
-  cookieRe: RegExp(['idev=', /*idevaffiliate program*/
-                    '|refid=',
-                    '|aff=',
-                    '|WHMCSAffiliateID=',
-                    '|amember_aff_id=',
-                    '|a_aid=', /*Hotelscombined and likely others use it*/
-                    '|affiliate=',
-                    '|AffiliateWizAffiliateID=',
+  cookieRe: RegExp(['^idev=', /*idevaffiliate program*/
+                    '|^refid=',
+                    '|^aff=',
+                    '|^WHMCSAffiliateID=',
+                    '|^amember_aff_id=',
+                    '|^a_aid=', /*Hotelscombined and likely others use it*/
+                    '|^affiliate=',
+                    '|^AffiliateWizAffiliateID=',
+                    '|^referred_by=',
+                    '|^referal=',
+                    // Exclude anything that's obviously a URL (referrer)
+                    // This is described here:
+                    // http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
+                    '|^ref=((?!http:).)*',
                     ].join(''), 'i'),
 
   /**
@@ -187,6 +193,9 @@ var TrackRequestBg = {
                 arg.indexOf("affiliate=") == 0 ||
                 arg.indexOf("referring_user=") == 0 || //Envato sites
                 arg.indexOf("aff_tag=") == 0 || //hidemyass
+                arg.indexOf("referred_by=") == 0 ||
+                arg.indexOf("referal=") == 0 ||
+                arg.indexOf("ref=") == 0 ||
                 (arg == 'idev' && arg.indexOf("--") == -1)) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.

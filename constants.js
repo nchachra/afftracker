@@ -71,7 +71,14 @@ var miscCookies = ["idev",
                    "amember_aff_id",
                    "a_aid",
                    "affiliate",
-                   "AffiliateWizAffiliateID"];
+                   "AffiliateWizAffiliateID",
+                   "referred_by", /*Ones I have seen were one time referrals.*/
+                   "referal",
+                   // Most of these are affiliate cookies afaik. But some look
+                   // like referers. I'll exclude ones that are obviously URLs.
+                   // May need some post-processing cleanup.
+                   "ref",
+                   ];
 
 
 // These are included in the above but might be useful later.

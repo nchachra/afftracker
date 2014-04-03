@@ -70,6 +70,7 @@ var TrackRequestBg = {
                     '|^AffiliateWizAffiliateID=',
                     '|^referred_by=',
                     '|^referal=',
+                    '|^MERCHANT\\d+=\\d+', //ShareASale
                     // Exclude anything that's obviously a URL (referrer)
                     // This is described here:
                     // http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
@@ -180,8 +181,10 @@ var TrackRequestBg = {
         // The cookies are URL encoded and ^ is %5E.
         if (arg.indexOf("r=cad") == 0) {
           return arg.split("%5E", 2)[1];
+        } else if (arg.indexOf("r=;") == 0) {
+          return null;
         } else {
-          return arg.split("%5E", 1)[0];
+          return arg.split("=")[1].split("%5E")[0];
         }
       } else if (merchant == 'hosting24.com' ||
                 merchant == 'inmotionhosting.com' ||
@@ -198,7 +201,9 @@ var TrackRequestBg = {
                 arg.indexOf("referal=") == 0 ||
                 arg.indexOf("lunarsale=") == 0 || //lunarpages
                 //arg.indexOf("ref=") == 0 ||
-                (arg == 'idev' && arg.indexOf("--") == -1)) {
+                (arg == 'idev' && arg.indexOf("--") == -1) ||
+                // ShareASale:
+                arg.indexOf("MERCHANT") == 0) {
           // arg is cookie like aff=<id>;... for hosting24
           // and affiliates=<id> for inmotionhosting.
           // and refid=<id> for webhostinghub.com.
@@ -294,91 +299,113 @@ var TrackRequestBg = {
                   arg = header.value;
                 }
                 var affId = setter.parseAffiliateId(merchant, arg);
-                var cookie = header.value;
-                submissionObj["cookieName"] = header.value.substring(
-                                  0, header.value.indexOf("="));
-                // We don't send the cookie to our server, but check that the
-                // cookie we recorded is the one user still has before
-                // displaying it.
-                var cookieVal = (cookie.indexOf(";") == -1) ?
-                                 cookie.substring(cookie.indexOf("=")) :
-                                 cookie.substring(cookie.indexOf("=") + 1,
-                                                  cookie.indexOf(';'));
-                submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).
-                                              toString(CryptoJS.enc.Hex);
-                submissionObj["cookieDomain"] = setter.getCookieParameter(
-                                                cookie, "domain", details.url);
-                submissionObj["cookiePath"] = setter.getCookieParameter(
-                                                cookie, "path", details.url);
-                submissionObj["cookieExpDate"] = setter.getCookieParameter(
-                                                cookie, "expires", "");
-                chrome.storage.sync.get(setter.userIdKey, function(result) {
-                  if (result.hasOwnProperty(setter.userIdKey)) {
-                    submissionObj["userId"] = result[setter.userIdKey];
-                  }
-                });
 
-                submissionObj["affId"] = affId;
-                submissionObj["type"] = details.type;
-                // In case of main frame, this is the same as landing URL.
-                submissionObj["originFrame"] = details.url;
-                submissionObj["timestamp"] = details.timeStamp;
-                var isMerchantKnown = true;
-                if (merchant == "") {
-                  // We found an affiliate program we didn't know of. Use the
-                  // cookie domain to identify program and append it
-                  // non-persistently to cookieMap.
-                  merchant = submissionObj["cookieDomain"].substring(
-                             submissionObj["cookieDomain"].indexOf(".") + 1);
-                  isMerchantKnown = false;
+                if (affId != null) {
+
+	                var cookie = header.value;
+	                submissionObj["cookieName"] = header.value.substring(
+	                                  0, header.value.indexOf("="));
+	                // We don't send the cookie to our server, but check that the
+	                // cookie we recorded is the one user still has before
+	                // displaying it.
+	                var cookieVal = (cookie.indexOf(";") == -1) ?
+	                                 cookie.substring(cookie.indexOf("=")) :
+	                                 cookie.substring(cookie.indexOf("=") + 1,
+	                                                  cookie.indexOf(';'));
+	                // For debugging only
+	                // submissionObj["cookieheadervalue"] = header.value;
+	                // submissionObj["cookieVal"] = cookieVal;
+	
+	                submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).
+	                                              toString(CryptoJS.enc.Hex);
+	                submissionObj["cookieDomain"] = setter.getCookieParameter(
+	                                                cookie, "domain", details.url);
+	                submissionObj["cookiePath"] = setter.getCookieParameter(
+	                                                cookie, "path", details.url);
+	                submissionObj["cookieExpDate"] = setter.getCookieParameter(
+	                                                cookie, "expires", "");
+	                chrome.storage.sync.get(setter.userIdKey, function(result) {
+	                  if (result.hasOwnProperty(setter.userIdKey)) {
+	                    submissionObj["userId"] = result[setter.userIdKey];
+	                  }
+	                });
+	
+	                submissionObj["affId"] = affId;
+	                submissionObj["type"] = details.type;
+	                // In case of main frame, this is the same as landing URL.
+	                submissionObj["originFrame"] = details.url;
+	                submissionObj["timestamp"] = details.timeStamp;
+	                var isMerchantKnown = true;
+	                if (merchant == "") {
+	                  // We found an affiliate program we didn't know of. Use the
+	                  // cookie domain to identify program and append it
+	                  // non-persistently to cookieMap. This works for most cases
+                    // except ShareASale network.
+	
+	                  // TODO: there should be a better way to calculate domain...?
+	                  if (submissionObj["cookieDomain"].split(".").length > 2) {
+	                       merchant = submissionObj["cookieDomain"].substring(
+	                                  submissionObj["cookieDomain"].indexOf(".") + 1);
+	                  } else {
+	                    merchant = submissionObj["cookieDomain"];
+	                  }
+                    if (merchant == "shareasale.com") {
+                      // Append the Merchant ID to it.
+                      // MERCHANT<merc-id>=aff-id
+                      merchant = merchant + "(merchant:" + cookie.substring(8, cookie.indexOf("=")) + ")";
+                    }
+	                  submissionObj["merchant"] = merchant;
+	                  isMerchantKnown = false;
+	                }
+	                submissionObj["isMerchantKnown"] = isMerchantKnown;
+	                var storeObj = {};
+	                var storage_key = "AffiliateTracker_" + merchant;
+	
+	                storeObj[storage_key] = {"affiliate" : affId,
+	                  "cookie": cookieVal,
+	                  "cookieDomain": submissionObj["cookieDomain"],
+	                  // TODO: So confusing
+	                  "origin": submissionObj["landing"]
+	                  }
+	                // We actually only care about the last cookie value written,
+	                //  so this over-writes.
+	                chrome.storage.sync.set(storeObj, function() {
+	                  //TODO: error handling?
+	                });
+	
+	                var notificationOpts = {
+	                    type: 'basic',
+	                    iconUrl: 'icon.png',
+	                    title: merchant + " cookie",
+	                    message: "From " + submissionObj["landing"]
+	                }
+	
+	                chrome.notifications.clear(setter.notificationId, function() {
+	                  // TODO: error handling?
+	                });
+	
+	                chrome.notifications.update(
+	                  setter.notificationId, notificationOpts, function(wasUpdated) {
+	                      if (!wasUpdated) {
+	                        chrome.notifications.create(setter.notificationId,
+	                            notificationOpts, function() {});
+	                      }
+	                });
+	                setTimeout(function() {
+	                  chrome.notifications.clear(setter.notificationId,
+	                      function() {});
+	                }, 1500);
+	
+	                // Send data to server.
+	                var xhr = new XMLHttpRequest();
+	                //xhr.open("POST", "http://127.0.0.1:5000/upload");
+	                xhr.open("POST",
+	                    "http://secret-sea-1620.herokuapp.com/upload");
+	                xhr.setRequestHeader("Content-Type",
+	                    "application/json;charset=UTF-8");
+	                xhr.send(JSON.stringify(submissionObj));
+	                console.log(submissionObj);
                 }
-                submissionObj["isMerchantKnown"] = isMerchantKnown;
-                var storeObj = {};
-                var storage_key = "AffiliateTracker_" + merchant;
-
-                storeObj[storage_key] = {"affiliate" : affId,
-                  "cookie": cookieVal,
-                  "cookieDomain": submissionObj["cookieDomain"],
-                  // TODO: So confusing
-                  "origin": submissionObj["landing"]
-                  }
-                // We actually only care about the last cookie value written,
-                //  so this over-writes.
-                chrome.storage.sync.set(storeObj, function() {
-                  //TODO: error handling?
-                });
-
-                var notificationOpts = {
-                    type: 'basic',
-                    iconUrl: 'icon.png',
-                    title: merchant + " cookie",
-                    message: "From " + submissionObj["landing"]
-                }
-
-                chrome.notifications.clear(setter.notificationId, function() {
-                  // TODO: error handling?
-                });
-
-                chrome.notifications.update(
-                  setter.notificationId, notificationOpts, function(wasUpdated) {
-                      if (!wasUpdated) {
-                        chrome.notifications.create(setter.notificationId,
-                            notificationOpts, function() {});
-                      }
-                });
-                setTimeout(function() {
-                  chrome.notifications.clear(setter.notificationId,
-                      function() {});
-                }, 1500);
-
-                // Send data to server.
-                var xhr = new XMLHttpRequest();
-                //xhr.open("POST", "http://127.0.0.1:5000/upload");
-                xhr.open("POST",
-                    "http://secret-sea-1620.herokuapp.com/upload");
-                xhr.setRequestHeader("Content-Type",
-                    "application/json;charset=UTF-8");
-                xhr.send(JSON.stringify(submissionObj));
                 // TODO: maybe check for success of xhr
                 // Delete this object either way
                 delete submissionObj;

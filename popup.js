@@ -38,7 +38,9 @@ var AffiliateTrackerPopup = {
                         "3docrean.net", "activeden.net", "envato.com"].
                         indexOf(merchant) != -1){
               iconImg.src = "icons/envato.com.png";
-            }else if (isMerchantKnown) {
+            } else if(merchant.indexOf("shareasale") != -1) {
+              iconImg.src = "icons/shareasale.com.png";
+            } else if (isMerchantKnown) {
               iconImg.src = "icons/" + merchant + ".png";
             } else {
               iconImg.src = "icons/unknown.png";
@@ -78,22 +80,48 @@ var AffiliateTrackerPopup = {
     var rowCounter = 0;
     var cookieMap = this.background.cookieMap;
     var miscCookies = this.background.miscCookies;
+    var miscCookieURLs = this.background.miscCookieURLs;
 
     // We don't identify all merchants in cookieMap. For more generic ones,
-    // we find them using cookie names, and if we stored information
-    // about them previously, we add them to the UI directly.
+    // we find them using cookie names and cookie domains, and if we stored
+    // information about them previously, we add them to the UI directly.
 
     miscCookies.forEach(function(cookieName, index) {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
         var popup = AffiliateTrackerPopup;
         cookies.forEach(function(cookie, index) {
-          var merchant = cookie.domain.substring(cookie.domain.indexOf(".") + 1);
+          var merchant = "";
+          if (cookie.domain.indexOf('.') == 0) {
+            merchant = cookie.domain.substring(1);
+          } else {
+            merchant = cookie.domain;
+          }
           if (!cookieMap.hasOwnProperty(merchant)) {
             popup.createRow(tableEl, merchant, cookieName, false);
           }
         });
       });
     });
+
+    miscCookieURLs.forEach(function(cookieURL, index) {
+      chrome.cookies.getAll({"url": cookieURL}, function(cookies) {
+        var popup = AffiliateTrackerPopup;
+        cookies.forEach(function(cookie, index) {
+          var merchant = "";
+          var cookieName = "";
+          if (cookie.domain.indexOf("shareasale") != -1 &&
+              cookie.name.indexOf("MERCHANT") == 0) {
+            merchant = "shareasale.com" + 
+                        "(merchant:" + cookie.name.substring(8) + ")";
+            cookieName = cookie.name;
+          }
+          if (!cookieMap.hasOwnProperty(merchant)) {
+            popup.createRow(tableEl, merchant, cookieName, false);
+          }
+        });
+      });
+    });
+
 
     Object.keys(cookieMap).forEach(function(merchant, index) {
       var popup = AffiliateTrackerPopup;

@@ -2,12 +2,16 @@
 * add the image/frame dimensions to the data.
 * send dom content.
 
+
 Low Pri:
 * Make all merchant icons be the same size.
+* Identify failed cookie stuffing events using URL patterns.
 
 High Pri:
 * godaddy example:   //?isc=cjcho199a&utm_campaign=affiliates_cj_199hst&utm_source=Commission%20Junction&utm_medium=External%2BAffil&utm_content=cjcho199a&cvosrc=affiliate.cj.PID
 * Looks like pop overs/unders aren't held well. It does not identify the page user had visited. For example, visit http://thishitseasy.blogspot.com/. It knows the cookie, but doesn't know which page gave user the cookie :(
+* For pages like http://www.smartincome.org/ not everything is being submitted. Requests are being throttled: http://dev.chromium.org/throttling
+* use email feedback to fix up/refactor.
 
 
 Notes:

@@ -79,8 +79,12 @@ var miscCookies = ["idev",
                    // like referers. I'll exclude ones that are obviously URLs.
                    // May need some post-processing cleanup.
                    //"ref",
+                   "PAPVisitorId", //post affiliate pro 4
                    ];
 
+
+
+var miscCookieURLs = ["http://www.shareasale.com"]
 
 // These are included in the above but might be useful later.
 // joyo.com redirects to amazon.cn

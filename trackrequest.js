@@ -272,7 +272,8 @@ var TrackRequestBg = {
     var merchant = "";
     if(setter.merchantRe.test(details.url)) {
       details.url.match(setter.merchantRe).forEach(function(matched, index) {
-        if (index != 0 && typeof matched != "undefined" && merchant == "") {
+        if (index != 0 && typeof matched != "undefined" && merchant == ""
+            && matched.indexOf(".") != -1) {
             merchant = matched;
         }
       });
@@ -400,11 +401,11 @@ var TrackRequestBg = {
 	                var xhr = new XMLHttpRequest();
 	                //xhr.open("POST", "http://127.0.0.1:5000/upload");
 	                xhr.open("POST",
-	                    "http://secret-sea-1620.herokuapp.com/upload");
+                      "http://angelic.ucsd.edu:5000/upload");
 	                xhr.setRequestHeader("Content-Type",
 	                    "application/json;charset=UTF-8");
 	                xhr.send(JSON.stringify(submissionObj));
-	                console.log(submissionObj);
+	                //console.log(submissionObj);
                 }
                 // TODO: maybe check for success of xhr
                 // Delete this object either way
@@ -429,7 +430,7 @@ var TrackRequestBg = {
     var merchant = "";
     if(setter.merchantRe.test(details.url)) {
       details.url.match(setter.merchantRe).forEach(function(matched, index) {
-        if (index != 0 && typeof matched != "undefined") {
+        if (index != 0 && typeof matched != "undefined" && merchant == "") {
           merchant = matched;
         }
       });

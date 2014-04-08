@@ -3,7 +3,7 @@
 
   "name": "AffiliateTracker",
   "description": "Track affiliates earning commission on your next purchase",
-  "version": "2.4",
+  "version": "2.4.1",
 
   "browser_action": {
     "default_icon": "icon.png",
@@ -25,11 +25,6 @@
   ],
 
   "permissions": [
-    "*://*.amazon.com/*", "*://*.amazon.de/*", "*://*.amazon.at/*", "*://*.amazon.ca/*",
-    "*://*.amazon.cn/*", "*://*.amazon.fr/*", "*://*.amazon.it/*", "*://*.amazon.co.jp/*",
-    "*://*.amazon.es/*", "*://*.amazon.co.uk/*", "*://*.joyo.com/*", "*://*.amazonsupply.com/*",
-    "*://*.javari.co.uk/*", "*://*.javari.de/*", "*://*.javari.fr/*", "*://*.javari.jp/*",
-    "*://*.buyvip.com/*", "http://*.hostgator.com/*", "http://secret-sea-1620.herokuapp.com/*",
     "*://*/*",
     "notifications",
     "webRequest",

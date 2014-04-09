@@ -12,7 +12,7 @@
   },
 
   "background": {
-    "scripts": ["trackrequest.js", "md5.js", "enc-base64-min.js", "constants.js"],
+    "scripts": ["constants.js", "trackrequest.js", "md5.js", "enc-base64-min.js"],
     "persistent": true
   },
 

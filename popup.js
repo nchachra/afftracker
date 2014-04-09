@@ -50,13 +50,26 @@ var AffiliateTrackerPopup = {
             row = document.createElement('tr');
             row.appendChild(iconCell);
             infoCell = document.createElement('td');
-            infoCell.innerHTML = "Your visit to " +
-                    "<span style='font-weight:bold;'>" + storeInfo.origin +
-                    "</span> will earn affiliate " +
-                    "<span style='font-weight:bold;'>" +
-                    storeInfo.affiliate + "</span> a commission on your " +
-                    "next purchase from <span style='font-weight:bold;'>" +
-                    merchant + "</span>";
+            var affiliateHTML = "affiliate <span style='font-weight:bold;'>" +
+                                storeInfo.affiliate + " </span>";
+
+            if (storeInfo.affiliate == null) {
+              affiliateHTML = "an <span style='font-style:italic;'>" +
+                "Unknown </span> affiliate ";
+            }
+            if (storeInfo.origin != null) {
+              infoCell.innerHTML = "Your visit to " +
+                      "<span style='font-weight:bold;'>" + storeInfo.origin +
+                      "</span> will earn " + affiliateHTML +
+                      " a commission on your " +
+                      "next purchase from <span style='font-weight:bold;'>" +
+                      merchant + "</span>";
+            } else {
+              infoCell.innerHTML = affiliateHTML + " will earn a commission " +
+                      "on your next purchase from " +
+                      "<span style='font-weight:bold;'>" +
+                      merchant + "</span";
+            }
             row.appendChild(infoCell);
             // Change background color for even numbered rows.
             if (tableEl.rows.length % 2 == 0) {

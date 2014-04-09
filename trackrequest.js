@@ -84,6 +84,74 @@ var TrackRequestBg = {
    */
   userIdKey: "AffiliateTracker_userId",
 
+
+  /**
+   * Initializes the extension. Specifically,
+   * 1) If a user does not have a unique identifier, it creates one.
+   * 2) Initializes and parses the existing cookies to display.
+   *
+   * @public
+   */
+  init: function() {
+    var setter = TrackRequestBg;
+    // If this user does not have a user Id, generate one.
+    chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
+      if (!result.hasOwnProperty(setter.userIdKey)) {
+        var newIdObj = setter.generateUserId();
+        chrome.storage.sync.set(newIdObj, function() {
+          //console.log("created user id");
+        });
+      }
+    });
+
+    // Initialize objects for existing cookies.
+    miscCookies.forEach(function(cookieName, index) {
+      chrome.cookies.getAll({"name": cookieName}, function(cookies) {
+        cookies.forEach(function(cookie, index) {
+          var merchant = "";
+          if (cookie.domain.indexOf('.') == 0) {
+            merchant = cookie.domain.substring(1);
+          } else {
+            merchant = cookie.domain;
+          }
+          if (!cookieMap.hasOwnProperty(merchant)) {
+            setter.storeAndSubmitCookieInfo(merchant, cookie);
+          }
+        });
+      });
+    });
+
+    miscCookieURLs.forEach(function(cookieURL, index) {
+      chrome.cookies.getAll({"url": cookieURL}, function(cookies) {
+        cookies.forEach(function(cookie, index) {
+          var merchant = "";
+          var cookieName = "";
+          if (cookie.domain.indexOf("shareasale") != -1 &&
+              cookie.name.indexOf("MERCHANT") == 0) {
+            merchant = "shareasale.com" +
+                        "(merchant:" + cookie.name.substring(8) + ")";
+            cookieName = cookie.name;
+          }
+          if (merchant != "" && !cookieMap.hasOwnProperty(merchant)) {
+            setter.storeAndSubmitCookieInfo(merchant, cookie);
+          }
+        });
+      });
+    });
+
+
+    Object.keys(cookieMap).forEach(function(merchant, index) {
+      chrome.cookies.getAll({"name": cookieMap[merchant]}, function(cookies) {
+        cookies.forEach(function(cookie, index) {
+          if (cookie.domain.indexOf(merchant) != -1) {
+            setter.storeAndSubmitCookieInfo(merchant, cookie);
+          }
+        });
+      });
+    });
+  },
+
+
   /**
    * Generate user ID for this user. Takes a hash of a random number
    * concatenated with the timestamp. We only generate a user id if
@@ -100,10 +168,81 @@ var TrackRequestBg = {
     return storageObj;
   },
 
+
+  /**
+   * Creates storage object for a cookie.
+   *
+   * @param{string} merchant It's the domain name of merchant.
+   * @param{object} cookie The internal cookie object.
+   *
+   * @private
+   */
+  storeAndSubmitCookieInfo: function(merchant, cookie) {
+    var storeKey = "AffiliateTracker_" + merchant;
+    var setter = TrackRequestBg;
+    var affId = setter.parseAffiliateId(merchant,
+                                        cookie.name + "=" + cookie.value,
+                                        "COOKIE");
+    var storeObj = {};
+    var storage_key = "AffiliateTracker_" + merchant;
+    storeObj[storage_key] = {"affiliate" : affId,
+                             "cookie": cookie.value,
+                             "cookieDomain": cookie.domain,
+                             "origin": null
+                            }
+    chrome.storage.sync.set(storeObj, function() {
+      //TODO: error handling?
+    });
+    var isMerchantKnown = cookieMap.hasOwnProperty(merchant) ? true : false;
+    var userId = "";
+    chrome.storage.sync.get(setter.userIdKey, function(result) {
+      if (result.hasOwnProperty(setter.userIdKey)) {
+        userId = result[setter.userIdKey];
+      }
+    });
+
+    this.submitCookieInfo({"affId": affId,
+                           "cookieDomain": cookie.domain,
+                           "cookieExpDate": cookie.expirationDate,
+                           "cookieHash": CryptoJS.MD5(cookie.value).
+                                            toString(CryptoJS.enc.Hex),
+                           "cookieName": cookie.name,
+                           "cookiePath": cookie.path,
+                           "isMerchantKnown": isMerchantKnown,
+                           "landing": null,
+                           "merchant": merchant,
+                           "newTab": null,
+                           "origin": null,
+                           "originFrame": null,
+                           "referer": null,
+                           "timestamp": new Date().getTime() / 1000,
+                           "type": null,
+                           "userId": userId,
+                           "cookieSrc": "store",
+                         });
+  },
+
+  /**
+   * Sends cookie to the server.
+   *
+   * @param{info} Object with cookie details.
+   * @private
+   */
+  submitCookieInfo: function(info) {
+    //DEBUG
+    //info.testUser = true;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://angelic.ucsd.edu:5000/upload");
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(info));
+  },
+
+
   /**
    * Parses cookie string to extract a given parameter.
    *
-   * @param{string} cookie
+   * @param{string} raw cookie string from the header
    * @param{string} parameter Parameter can be domain, path, or expiration.
    * @param{string} arg Argument needed to determine a default value.
    * @return{string} extracted value.
@@ -139,12 +278,14 @@ var TrackRequestBg = {
    * Parses out affiliate ID.
    *
    * @param {string} merchant Merchant name in lower case.
-   * @param {string} arg Either a URL or cookie depending on the merchant.
-   * @return {string} Affiliate's ID.
+   * @param {string} arg Either a URL or cookie depending on the argType.
+   * @param {string} argType Either "COOKIE" or "URL"
+   * @return {string} Affiliate's ID. Returns null if it can't find id.
+   *
    * @private
    */
-  parseAffiliateId: function(merchant, arg) {
-      if (amazonSites.indexOf(merchant) !== -1) {
+  parseAffiliateId: function(merchant, arg, argType) {
+      if (amazonSites.indexOf(merchant) !== -1 && argType == "URL") {
         // Treat arg as URL.
         var url = arg;
         var args = url.substring(url.lastIndexOf("/") + 1);
@@ -162,31 +303,32 @@ var TrackRequestBg = {
             return args;
           }
         };
-      } else if (merchant.indexOf("hostgator") != -1) {
-        // Treat arg as cookie value.
-        // Split cookie value on semi-colon, take the first break which looks
-        //   like number.affId
-        return arg.split(";", 1)[0].split(".")[1];
-      } else if (merchant.indexOf("dreamhost") != -1) {
-        // arg is cookie value of the form rewards|affid
-        //   but it is url encoded so it looks like rewards%7C<affid>;...
-        return arg.split(";", 1)[0].split("7C")[1];
-      } else if (merchant.indexOf("bluehost") != -1 ||
+      } else if (argType == "COOKIE") {
+        if (merchant.indexOf("hostgator") != -1) {
+          // Treat arg as cookie value.
+          // Split cookie value on semi-colon, take the first break which looks
+          //   like number.affId
+          return arg.split(";", 1)[0].split(".")[1];
+        } else if (merchant.indexOf("dreamhost") != -1) {
+          // arg is cookie value of the form rewards|affid
+          //   but it is url encoded so it looks like rewards%7C<affid>;...
+          return arg.split(";", 1)[0].split("7C")[1];
+        } else if (merchant.indexOf("bluehost") != -1 ||
                  merchant.indexOf("justhost") != -1 ||
                  merchant.indexOf("hostmonster") != -1) {
-        // arg is cookie. Cookie usually takes one of two forms (I think):
-        //    r=<affId>^<campaignId>^<srcUrl>
-        //    or
-        //    r=cad^<affId>^<randomString>
-        // The cookies are URL encoded and ^ is %5E.
-        if (arg.indexOf("r=cad") == 0) {
-          return arg.split("%5E", 2)[1];
-        } else if (arg.indexOf("r=;") == 0) {
-          return null;
-        } else {
-          return arg.split("=")[1].split("%5E")[0];
-        }
-      } else if (merchant == 'hosting24.com' ||
+          // arg is cookie. Cookie usually takes one of two forms (I think):
+          //    r=<affId>^<campaignId>^<srcUrl>
+          //    or
+          //    r=cad^<affId>^<randomString>
+          // The cookies are URL encoded and ^ is %5E.
+          if (arg.indexOf("r=cad") == 0) {
+            return arg.split("%5E", 2)[1];
+          } else if (arg.indexOf("r=;") == 0) {
+            return null;
+          } else {
+            return arg.split("=")[1].split("%5E")[0];
+          }
+        } else if (merchant == 'hosting24.com' ||
                 merchant == 'inmotionhosting.com' ||
                 merchant == 'ixwebhosting.com' ||
                 arg.indexOf("refid=") == 0 ||
@@ -211,27 +353,29 @@ var TrackRequestBg = {
           // Sometimes idev appears with just the id: idev=<id>
           //  and otherwise the check below handles it.
           return arg.split(";")[0].split("=")[1];
-      } else if (merchant == 'ipage.com' ||
+        } else if (merchant == 'ipage.com' ||
                  merchant == 'fatcow.com'||
                  merchant == 'startlogic.com' ||
                  merchant == 'bizland.com' ||
                  merchant == 'ipower.com') {
-        // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
-        var affIndex = arg.indexOf("AffID&");
-        return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
-      } else if (arg.indexOf("idev=")  == 0) {
-        // webhostingpad: idev=<affid>----------<urlencodedreferrer>
-        // hostrocket.com: idev=<affid>-<referrer>------<hostrocketURL>
-        // arvixe.com idev=<affid>-<referrer>-------<arvixeURL>
-        // idev is an affiliate program, so there are others that I don't
-        //  uniquely identify.
-        return arg.substring(arg.indexOf("=") + 1, arg.indexOf("-"));
-      } else if (arg.indexOf("AffiliateWizAffiliateID=") == 0){
-        // AffiliateWizAffiliateID=AffiliateID=41266&ClickBannerID=0&
-        //  SubAffiliateID=t6555&Custom=&ClickDateTime=9/20/2013 1:35:07 AM
-        return arg.substring(arg.indexOf("=AffiliateID=") + 13,
+          // arg is cookie like "AffCookie=things&stuff&AffID&655061&more&stuff"
+          var affIndex = arg.indexOf("AffID&");
+          return arg.substring(affIndex + 6, arg.indexOf("&", affIndex + 7));
+        } else if (arg.indexOf("idev=")  == 0) {
+          // webhostingpad: idev=<affid>----------<urlencodedreferrer>
+          // hostrocket.com: idev=<affid>-<referrer>------<hostrocketURL>
+          // arvixe.com idev=<affid>-<referrer>-------<arvixeURL>
+          // idev is an affiliate program, so there are others that I don't
+          //  uniquely identify.
+          return arg.substring(arg.indexOf("=") + 1, arg.indexOf("-"));
+        } else if (arg.indexOf("AffiliateWizAffiliateID=") == 0){
+          // AffiliateWizAffiliateID=AffiliateID=41266&ClickBannerID=0&
+          //  SubAffiliateID=t6555&Custom=&ClickDateTime=9/20/2013 1:35:07 AM
+          return arg.substring(arg.indexOf("=AffiliateID=") + 13,
                              arg.indexOf("&"));
+        }
       }
+      return null;
   },
 
   /**
@@ -293,13 +437,16 @@ var TrackRequestBg = {
              )
             ) {
                 var arg = "";
+                var argType = "";
                 if (amazonSites.indexOf(merchant) != -1) {
                   // Amazon's affiliate id does not show up in the Cookie.
                   arg = details.url;
+                  argType = "URL";
                 } else {
                   arg = header.value;
+                  argType = "COOKIE";
                 }
-                var affId = setter.parseAffiliateId(merchant, arg);
+                var affId = setter.parseAffiliateId(merchant, arg, argType);
 
                 if (affId != null) {
 
@@ -325,6 +472,7 @@ var TrackRequestBg = {
 	                                                cookie, "path", details.url);
 	                submissionObj["cookieExpDate"] = setter.getCookieParameter(
 	                                                cookie, "expires", "");
+                  // TODO: Can be optimized. Save it after finding it once.
 	                chrome.storage.sync.get(setter.userIdKey, function(result) {
 	                  if (result.hasOwnProperty(setter.userIdKey)) {
 	                    submissionObj["userId"] = result[setter.userIdKey];
@@ -396,16 +544,9 @@ var TrackRequestBg = {
 	                  chrome.notifications.clear(setter.notificationId,
 	                      function() {});
 	                }, 1500);
-	
+                  submissionObj["cookieSrc"] = "traffic";
 	                // Send data to server.
-	                var xhr = new XMLHttpRequest();
-	                //xhr.open("POST", "http://127.0.0.1:5000/upload");
-	                xhr.open("POST",
-                      "http://angelic.ucsd.edu:5000/upload");
-	                xhr.setRequestHeader("Content-Type",
-	                    "application/json;charset=UTF-8");
-	                xhr.send(JSON.stringify(submissionObj));
-	                //console.log(submissionObj);
+                  setter.submitCookieInfo(submissionObj);
                 }
                 // TODO: maybe check for success of xhr
                 // Delete this object either way
@@ -436,6 +577,8 @@ var TrackRequestBg = {
       });
     }
     var newSubmission = {};
+    // TODO
+    newSubmission["testUser"] = true;
     newSubmission["merchant"] = merchant;
     if (details.tabId >= 0) {
       chrome.tabs.get(details.tabId, function(tab) {
@@ -488,13 +631,5 @@ chrome.webRequest.onSendHeaders.addListener(
     TrackRequestBg.requestCallback, {urls: ["<all_urls>"]},
     ["requestHeaders"]);
 
-// If this user does not have a user Id, generate one.
-chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
-  var setter = TrackRequestBg;
-  if (!result.hasOwnProperty(setter.userIdKey)) {
-    var newIdObj = setter.generateUserId();
-    chrome.storage.sync.set(newIdObj, function() {
-      //console.log("created user id");
-    });
-  }
-});
+
+TrackRequestBg.init();

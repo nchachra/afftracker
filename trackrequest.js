@@ -84,6 +84,13 @@ var TrackRequestBg = {
    */
   userIdKey: "AffiliateTracker_userId",
 
+  /**
+   * Unique user id. Generated at initialization.
+   *
+   * @private
+   */
+  userId: null,
+
 
   /**
    * Initializes the extension. Specifically,
@@ -95,14 +102,19 @@ var TrackRequestBg = {
   init: function() {
     var setter = TrackRequestBg;
     // If this user does not have a user Id, generate one.
-    chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
-      if (!result.hasOwnProperty(setter.userIdKey)) {
-        var newIdObj = setter.generateUserId();
-        chrome.storage.sync.set(newIdObj, function() {
-          //console.log("created user id");
-        });
-      }
-    });
+    if (setter.userId == null) {
+      chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
+        if (!result.hasOwnProperty(setter.userIdKey)) {
+          var newIdObj = setter.generateUserId();
+          setter.userId = newIdObj[setter.userIdKey];
+          chrome.storage.sync.set(newIdObj, function() {
+            //console.log("created user id");
+          });
+        } else {
+          setter.userId = result[setter.userIdKey];
+        }
+      });
+    }
 
     // Initialize objects for existing cookies.
     miscCookies.forEach(function(cookieName, index) {
@@ -194,12 +206,19 @@ var TrackRequestBg = {
       //TODO: error handling?
     });
     var isMerchantKnown = cookieMap.hasOwnProperty(merchant) ? true : false;
-    var userId = "";
-    chrome.storage.sync.get(setter.userIdKey, function(result) {
-      if (result.hasOwnProperty(setter.userIdKey)) {
-        userId = result[setter.userIdKey];
-      }
-    });
+    if (setter.userId == null) {
+      chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
+        if (!result.hasOwnProperty(setter.userIdKey)) {
+          var newIdObj = setter.generateUserId();
+          setter.userId = newIdObj[setter.userIdKey];
+          chrome.storage.sync.set(newIdObj, function() {
+            //console.log("created user id");
+          });
+        } else {
+          setter.userId = result[setter.userIdKey];
+        }
+      });
+    }
 
     this.submitCookieInfo({"affId": affId,
                            "cookieDomain": cookie.domain,
@@ -217,7 +236,7 @@ var TrackRequestBg = {
                            "referer": null,
                            "timestamp": new Date().getTime() / 1000,
                            "type": null,
-                           "userId": userId,
+                           "userId": setter.userId,
                            "cookieSrc": "store",
                          });
   },
@@ -231,6 +250,7 @@ var TrackRequestBg = {
   submitCookieInfo: function(info) {
     //DEBUG
     //info.testUser = true;
+    //console.log(info);
 
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "http://angelic.ucsd.edu:5000/upload");
@@ -472,12 +492,22 @@ var TrackRequestBg = {
 	                                                cookie, "path", details.url);
 	                submissionObj["cookieExpDate"] = setter.getCookieParameter(
 	                                                cookie, "expires", "");
-                  // TODO: Can be optimized. Save it after finding it once.
-	                chrome.storage.sync.get(setter.userIdKey, function(result) {
-	                  if (result.hasOwnProperty(setter.userIdKey)) {
-	                    submissionObj["userId"] = result[setter.userIdKey];
-	                  }
-	                });
+                  // TODO: Can be optimized. Break it off as a separate function.
+                  if (setter.userId == null) {
+                    chrome.storage.sync.get(TrackRequestBg.userIdKey, function(result) {
+                      if (!result.hasOwnProperty(setter.userIdKey)) {
+                        var newIdObj = setter.generateUserId();
+                        setter.userId = newIdObj[setter.userIdKey];
+                        chrome.storage.sync.set(newIdObj, function() {
+                          //console.log("created user id");
+                        });
+                      } else {
+                        setter.userId = result[setter.userIdKey];
+                      }
+                    });
+                  }
+
+                  submissionObj["userId"] = setter.userId;
 	
 	                submissionObj["affId"] = affId;
 	                submissionObj["type"] = details.type;

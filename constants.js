@@ -1,6 +1,38 @@
+AT_CONSTANTS = {
+
+  /**
+   * Prefix we use for keys related to this extension in the local storage.
+   *
+   * @public
+   * @const
+   */
+  KEY_ID_PREFIX: "AffiliateTracker_",
+
+  /**
+   * We need notification ID to control when it should be hidden. Unclear why
+   * Chrome designed it this way.
+   *
+   * @private
+   * @const
+   */
+  NOTIFICATION_ID: this.KEY_ID_PREFIX + "notif",
+
+  /**
+   * Key used to store a unique identifier for the user in the local store.
+   * This value of this key is used to determine whether information for a
+   * given cookie belongs to a single user.
+   *
+   * @private
+   * @const
+   */
+  USER_ID_STORAGE_KEY: this.KEY_ID_PREFIX + "userId",
+
+};
+
+
 var amazonSites = ["amazon.com", "amazon.de", "amazon.at", "amazon.ca", "amazon.cn",
                     "amazon.fr", "amazon.it", "amazon.co.jp", "amazon.es", "amazon.co.uk",
-                    "joyo.com",
+                    "joyo.com", "amazon.in",
                     "amazonsupply.com",
                     "javari.co.uk", "javari.de", "javari.fr", "javari.jp",
                     "buyvip.com"];
@@ -17,6 +49,7 @@ var cookieMap = { /* Amazon sites */
                   "amazon.co.jp": "UserPref",
                   "amazon.es": "UserPref",
                   "amazon.co.uk": "UserPref",
+                  "amazon.in": "UserPref",
                   "joyo.com": "UserPref",
                   "amazonsupply.com": "UserPref",
                   "javari.co.uk": "UserPref",
@@ -65,7 +98,14 @@ var cookieMap = { /* Amazon sites */
                  };
 
 
-var miscCookies = ["idev",
+var affCookieNames = ["GatorAffiliate",
+                      "referred",
+                      "affiliates",
+                      "AffCookie",
+                      "IXAFFILIATE",
+                      "r",
+                      "lunarsale",
+                    "idev",
                    "refid",
                    "aff", /* Results in a lot of porn cookies...*/
                    "WHMCSAffiliateID",
@@ -80,11 +120,14 @@ var miscCookies = ["idev",
                    // May need some post-processing cleanup.
                    //"ref",
                    "PAPVisitorId", //post affiliate pro 4
+                   "UserPref",
+                   "referring_user",
+                   "aff_tag"
                    ];
 
 
 
-var miscCookieURLs = ["http://www.shareasale.com"]
+//var miscCookieURLs = ["http://www.shareasale.com"]
 
 // These are included in the above but might be useful later.
 // joyo.com redirects to amazon.cn

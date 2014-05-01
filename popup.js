@@ -2,20 +2,48 @@ var AffiliateTrackerPopup = {
 
   background: chrome.extension.getBackgroundPage(),
 
+
+  /**
+   * Returns the name of icon image. Usually it's named merchant.png, but there
+   * are some exceptions. For mrechants that we do not have an icon for, a
+   * generic "unknown" image is displayed.
+   *
+   * @param{string} merchant The name of merchant.
+   * @return{string} relative image URL.
+   */
+  getImgUrl: function(merchant, merchantInCookieMap) {
+    if (merchant.indexOf('buyvip.com') !== -1 ||
+        merchant.indexOf('javari') !== -1) {
+      return "icons/" +  merchant.split('.')[0] + ".png";
+    } else if (merchant.indexOf("datahc.com") != -1) {
+      // It's the same program.
+      return "icons/hotelscombined.com.png";
+    } else if (["themeforest.net", "codecanyon.net", "videohive.net",
+        "audiojungle.net", "graphicriver.net", "photodune.net", "3docrean.net",
+        "activeden.net", "envato.com"].indexOf(merchant) != -1) {
+      return "icons/envato.com.png";
+    } else if(merchant.indexOf("shareasale") != -1) {
+      return "icons/shareasale.com.png";
+    } else if (this.background.cookieMap.hasOwnProperty(merchant)) {
+      return "icons/" + merchant + ".png";
+    } else {
+      return "icons/unknown.png";
+    }
+  },
+
+
   /**
    * Appends a row to table element.
    *
    * @param{Object} tableEl Table to which row should be added.
    * @param{string} merchant The merchant domain name.
    * @param{string} cookieName Name of the cookie.
-   * @param{boolean} isMerchantKnown Whether we have the merchant
-   *   in cookie map.
    *
    * @private
    */
-  createRow: function(tableEl, merchant, cookieName, isMerchantKnown) {
+  createRow: function(tableEl, merchant, cookieName) {
     var row = null;
-    var storeKey = "AffiliateTracker_" + merchant;
+    var storeKey = this.background.AT_CONSTANTS.KEY_ID_PREFIX + merchant;
     chrome.storage.sync.get(storeKey, function(result) {
       var storeInfo = result[storeKey];
       if (typeof storeInfo != "undefined" && storeInfo != null) {
@@ -27,26 +55,10 @@ var AffiliateTrackerPopup = {
           if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
             // Every table's first cell is the icon img.
             var iconImg = document.createElement('img');
-            if (merchant.indexOf('buyvip.com') !== -1 ||
-              merchant.indexOf('javari') !== -1) {
-              iconImg.src = "icons/" +  merchant.split('.')[0] + ".png";
-            } else if (merchant.indexOf("datahc.com") != -1) {
-              // It's the same program.
-              iconImg.src = "icons/hotelscombined.com.png";
-            } else if (["themeforest.net", "codecanyon.net", "videohive.net",
-                        "audiojungle.net", "graphicriver.net", "photodune.net",
-                        "3docrean.net", "activeden.net", "envato.com"].
-                        indexOf(merchant) != -1){
-              iconImg.src = "icons/envato.com.png";
-            } else if(merchant.indexOf("shareasale") != -1) {
-              iconImg.src = "icons/shareasale.com.png";
-            } else if (isMerchantKnown) {
-              iconImg.src = "icons/" + merchant + ".png";
-            } else {
-              iconImg.src = "icons/unknown.png";
-            }
+            iconImg.src = AffiliateTrackerPopup.getImgUrl(merchant);
             var iconCell = document.createElement('td');
             iconCell.appendChild(iconImg);
+
             row = document.createElement('tr');
             row.appendChild(iconCell);
             infoCell = document.createElement('td');
@@ -91,55 +103,37 @@ var AffiliateTrackerPopup = {
     var divEl = document.getElementById("merchant-info");
     var tableEl = document.createElement('table');
     var rowCounter = 0;
-    var cookieMap = this.background.cookieMap;
-    var miscCookies = this.background.miscCookies;
-    var miscCookieURLs = this.background.miscCookieURLs;
+    var affCookieNames = this.background.affCookieNames;
 
-    // We don't identify all merchants in cookieMap. For more generic ones,
-    // we find them using cookie names and cookie domains, and if we stored
-    // information about them previously, we add them to the UI directly.
-
-    miscCookies.forEach(function(cookieName, index) {
+    affCookieNames.forEach(function(cookieName, index) {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
         var popup = AffiliateTrackerPopup;
         cookies.forEach(function(cookie, index) {
-          var merchant = "";
+          var merchant = cookie.domain;
+          //TODO: user messages to use the background function for this..
           if (cookie.domain.indexOf('.') == 0) {
             merchant = cookie.domain.substring(1);
-          } else {
-            merchant = cookie.domain;
           }
-          if (!cookieMap.hasOwnProperty(merchant)) {
-            popup.createRow(tableEl, merchant, cookieName, false);
+          if (merchant.indexOf('www.') == 0) {
+            merchant = merchant.substring(4);
           }
-        });
-      });
-    });
-
-    miscCookieURLs.forEach(function(cookieURL, index) {
-      chrome.cookies.getAll({"url": cookieURL}, function(cookies) {
-        var popup = AffiliateTrackerPopup;
-        cookies.forEach(function(cookie, index) {
-          var merchant = "";
-          var cookieName = "";
-          if (cookie.domain.indexOf("shareasale") != -1 &&
+          if ((merchant.slice(-4) == ".com" ||
+               merchant.slice(-4) == ".net" ||
+               merchant.slice(-4) == ".org") &&
+              (merchant.split(".").length == 3)) {
+            merchant = merchant.substring(merchant.indexOf(".") + 1);
+            console.log(merchant);
+          }
+          if (merchant.indexOf("shareasale") != -1 &&
               cookie.name.indexOf("MERCHANT") == 0) {
-            merchant = "shareasale.com" + 
-                        "(merchant:" + cookie.name.substring(8) + ")";
-            cookieName = cookie.name;
+            merchant = "shareasale.com (merchant:" + cookie.name.substring(8) +
+                 ")";
           }
-          if (!cookieMap.hasOwnProperty(merchant)) {
-            popup.createRow(tableEl, merchant, cookieName, false);
-          }
+          popup.createRow(tableEl, merchant, cookieName);
         });
       });
     });
 
-
-    Object.keys(cookieMap).forEach(function(merchant, index) {
-      var popup = AffiliateTrackerPopup;
-      popup.createRow(tableEl, merchant, cookieMap[merchant], true);
-    });
     divEl.appendChild(tableEl);
   }
 };

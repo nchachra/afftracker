@@ -30,6 +30,7 @@
     "webRequest",
     "tabs",
     "storage",
-    "cookies"
+    "cookies",
+    "management"
   ]
 }

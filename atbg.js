@@ -1,6 +1,6 @@
 var ATBg = {
 
-  /**
+  /*
    * Debugging flag. Don't overwhelm logger for others.
    */
   debug: true,
@@ -207,12 +207,61 @@ var ATBg = {
    * Initializes the extension. Specifically,
    * 1) If a user does not have a unique identifier, it creates one.
    * 2) Initializes and parses the existing cookies to display in the popup.
+   * 3) Sends a list of currently installed extensions to the server. We track
+   *    these because extensions like adblocker affect affiliate cookies.
    *
    * @public
    */
   init: function() {
     this.log("Initializing");
     var userId = this.getUserId();
+    ATBg.processExistingCookies();
+    ATBg.processExistingExtensions();
+  },
+
+
+  /**
+   * Sends a list of currently installed extensions to the server. We send
+   * the extension name, id, and description.
+   */
+  processExistingExtensions: function() {
+    var pendingExtSubmissions = [];
+    chrome.management.getAll(function(extensions) {
+      extensions.forEach(function (extension, index) {
+        pendingExtSubmissions.push({"name": extension.name,
+                                     "id": extension.id,
+                                     "description": extension.description,
+                                     "userId": ATBg.getUserId(),
+                                     "timestamp": new Date().getTime() / 1000
+                                    });
+      });
+      if (pendingExtSubmissions.length > 0) {
+        ATBg.sendXhr(pendingExtSubmissions);
+      }
+    });
+  },
+
+
+  /**
+   * Sends an object to server asynchronously.
+   *
+   * @param{object} ob Object to be serialized and sent to server.
+   */
+  sendXhr: function(ob) {
+    if (!ATBg.debug) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "http://angelic.ucsd.edu:5000/upload");//TODO? a different URL?
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(ob));
+    }
+  },
+
+
+  /**
+   * Looks through all the cookies in the cookie store to find affiliate
+   * cookies.
+   */
+  processExistingCookies: function() {
     chrome.cookies.getAll({}, function(cookies) {
       cookies.forEach(function(cookie, index) {
         if (ATBg.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
@@ -361,14 +410,9 @@ var ATBg = {
         toPush.testUser = true;
       submissions.push(toPush);
     }
-
-/**    if (submissions.length > 0) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", "http://angelic.ucsd.edu:5000/upload");
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(submissions));
+    if (submissions.length > 0) {
+      ATBg.sendXhr(submissions);
     }
-      */
   },
 
 
@@ -587,7 +631,6 @@ var ATBg = {
       if (merchant == "") {
         merchant = ATBg.getMerchantFromCookieDomain(
             submissionObj["cookieDomain"], submissionObj["cookieName"]);
-        console.log("getting from cookie domain; " + merchant);
       }
         submissionObj["merchant"] = merchant;
       }
@@ -656,13 +699,11 @@ var ATBg = {
               ATBg.parseAffiliateId(merchant, header.value, "COOKIE");
 
           if (affId) {
-            console.log("mechant: " + submissionObj["merchant"]);
             ATBg.updateSubmissionObj(submissionObj, header.value, affId,
                 response, merchant);
             ATBg.storeInLocalStorage(submissionObj);
             ATBg.removeSensitiveInfoFromSubmission(submissionObj);
             ATBg.submissionQueue.push(submissionObj);
-            console.log(submissionObj);
             ATBg.notifyUser(submissionObj["merchant"], submissionObj["landing"]);
           }
         }

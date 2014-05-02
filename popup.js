@@ -4,6 +4,25 @@ var AffiliateTrackerPopup = {
 
 
   /**
+   * We only have icons for a few programs. The best way I found is to just
+   * store them as a constant map.
+   *
+   * @const
+   * @private
+   */
+  ICONS_AVAILABLE: ["amazon.at", "arvixe.com", "hotelscombined.com",
+      "amazon.ca", "bizland.com", "inmotionhosting.com", "amazon.cn",
+      "bluehost.com", "ipage.com", "amazon.co.jp", "ipower.com",
+      "amazon.com", "dollarsign.png", "ixwebhosting.com", "amazon.co.uk",
+      "dreamhost.com", "javari.png", "amazon.de", "envato.com", "justhost.com",
+      "amazon.es", "fatcow.com", "lunarpages.com", "amazon.fr",
+      "hidemyass.com", "shareasale.com", "hostgator.com",
+      "startlogic.com", "amazon.in", "hosting24.com", "amazon.it",
+      "hostmonster.com", "webhostinghub.com", "amazonsupply.com",
+      "hostrocket.com", "webhostingpad.com"],
+
+
+  /**
    * Returns the name of icon image. Usually it's named merchant.png, but there
    * are some exceptions. For mrechants that we do not have an icon for, a
    * generic "unknown" image is displayed.
@@ -11,7 +30,7 @@ var AffiliateTrackerPopup = {
    * @param{string} merchant The name of merchant.
    * @return{string} relative image URL.
    */
-  getImgUrl: function(merchant, merchantInCookieMap) {
+  getImgUrl: function(merchant) {
     if (merchant.indexOf('buyvip.com') !== -1 ||
         merchant.indexOf('javari') !== -1) {
       return "icons/" +  merchant.split('.')[0] + ".png";
@@ -24,7 +43,7 @@ var AffiliateTrackerPopup = {
       return "icons/envato.com.png";
     } else if(merchant.indexOf("shareasale") != -1) {
       return "icons/shareasale.com.png";
-    } else if (this.background.cookieMap.hasOwnProperty(merchant)) {
+    } else if (this.ICONS_AVAILABLE.indexOf(merchant) != -1) {
       return "icons/" + merchant + ".png";
     } else {
       return "icons/unknown.png";
@@ -103,7 +122,7 @@ var AffiliateTrackerPopup = {
     var divEl = document.getElementById("merchant-info");
     var tableEl = document.createElement('table');
     var rowCounter = 0;
-    var affCookieNames = this.background.affCookieNames;
+    var affCookieNames = this.background.AT_CONSTANTS.affCookieNames;
 
     affCookieNames.forEach(function(cookieName, index) {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
@@ -122,7 +141,6 @@ var AffiliateTrackerPopup = {
                merchant.slice(-4) == ".org") &&
               (merchant.split(".").length == 3)) {
             merchant = merchant.substring(merchant.indexOf(".") + 1);
-            console.log(merchant);
           }
           if (merchant.indexOf("shareasale") != -1 &&
               cookie.name.indexOf("MERCHANT") == 0) {

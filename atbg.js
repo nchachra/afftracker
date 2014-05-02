@@ -219,7 +219,7 @@ var ATBg = {
           var merchant = ATBg.getMerchantFromCookie(cookie);
           // We identified an affiliate cookie.
           var affId = null;
-          if (amazonSites.indexOf(merchant) == -1) {
+          if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) == -1) {
             affId = ATBg.parseAffiliateId(merchant,
                 cookie.name + "=" + cookie.value, "COOKIE");
           }
@@ -298,7 +298,6 @@ var ATBg = {
    * @private
    */
   processExistingAffCookie: function(affId, merchant, cookie) {
-    ATBg.log("processing existing cookie");
     var newSubmission = {};
     ATBg.updateSubmissionObj(newSubmission,  null, affId, null, merchant,
         cookie);
@@ -318,7 +317,6 @@ var ATBg = {
   storeInLocalStorage: function(submissionObj) {
     var storeObj = {};
     var storage_key = AT_CONSTANTS.KEY_ID_PREFIX + submissionObj["merchant"];
-    //ATBg.log(storage_key);
 
     storeObj[storage_key] = {
                               "affiliate" : submissionObj["affId"],
@@ -327,8 +325,6 @@ var ATBg = {
                               "origin": submissionObj["origin"]
                              };
     // We only care about the last cookie value written
-    ATBg.log("Setting in storage");
-    ATBg.log(storeObj);
     chrome.storage.sync.set(storeObj, function() {
       //TODO: error handling?
     });
@@ -356,8 +352,6 @@ var ATBg = {
    * @private
    */
   sendToServer: function() {
-    //ATBg.log("Sending to server");
-
     // Send messages up to length
     var len = ATBg.submissionQueue.length;
     var submissions = [];
@@ -367,8 +361,6 @@ var ATBg = {
         toPush.testUser = true;
       submissions.push(toPush);
     }
-
-    //ATBg.log(submissions);
 
 /**    if (submissions.length > 0) {
       var xhr = new XMLHttpRequest();
@@ -427,7 +419,8 @@ var ATBg = {
    * @private
    */
   parseAffiliateId: function(merchant, arg, argType) {
-      if (amazonSites.indexOf(merchant) !== -1 && argType == "URL") {
+      if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) !== -1 &&
+          argType == "URL") {
         // Treat arg as URL.
         var url = arg;
         var args = url.substring(url.lastIndexOf("/") + 1);
@@ -525,7 +518,7 @@ var ATBg = {
       var merchant = "";
       if (cookieDomain.substring(0, 4) == "www.") {
         merchant = cookieDomain.substring(4);
-      } else if (cookieDomain[0] = ".") {
+      } else if (cookieDomain[0] == ".") {
         merchant = cookieDomain.substring(1);
       }
       if (merchant == "shareasale.com") {
@@ -594,6 +587,7 @@ var ATBg = {
       if (merchant == "") {
         merchant = ATBg.getMerchantFromCookieDomain(
             submissionObj["cookieDomain"], submissionObj["cookieName"]);
+        console.log("getting from cookie domain; " + merchant);
       }
         submissionObj["merchant"] = merchant;
       }
@@ -656,19 +650,19 @@ var ATBg = {
             // empty. The real cookie is the one set for www.bluehost.com.
             !header.value.indexOf("domain=.bluehost.com;") != -1) {
 
-          //ATBg.log(header.value.match(ATBg.cookieAffRe));
           var merchant = ATBg.getMerchantFromUrl(response.url);
-          var affId = (amazonSites.indexOf(merchant) != -1) ?
+          var affId = (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) != -1) ?
               ATBg.parseAffiliateId(merchant, response.url, "URL"):
               ATBg.parseAffiliateId(merchant, header.value, "COOKIE");
 
           if (affId) {
+            console.log("mechant: " + submissionObj["merchant"]);
             ATBg.updateSubmissionObj(submissionObj, header.value, affId,
                 response, merchant);
             ATBg.storeInLocalStorage(submissionObj);
-            //ATBg.log(submissionObj);
             ATBg.removeSensitiveInfoFromSubmission(submissionObj);
             ATBg.submissionQueue.push(submissionObj);
+            console.log(submissionObj);
             ATBg.notifyUser(submissionObj["merchant"], submissionObj["landing"]);
           }
         }
@@ -695,14 +689,13 @@ var ATBg = {
     if (request.tabId >= 0) {
       chrome.tabs.get(request.tabId, function(tab) {
         newSubmission["origin"] = tab.url;
-        ATBg.log("setting origin: " + tab.url);
         newSubmission["landing"] = tab.url;
         if (tab.hasOwnProperty("openerTabId")) {
-          console.warn(tab);
+          //TODO: This is very buggy. It does not reliably indicate the
+          //opener tab. :(
           chrome.tabs.get(tab.openerTabId, function(openerTab) {
-            newSubmission["origin"] = openerTab.url;
-            ATBg.log("overwriting origin: " + openerTab.url);
-            newSubmission["newTab"] = true;
+            //newSubmission["origin"] = openerTab.url;
+            //newSubmission["newTab"] = true;
           });
         } else {
           newSubmission["newTab"] = false;
@@ -722,7 +715,6 @@ var ATBg = {
           request.requestId)) {
         // Delete this object either way
         delete ATBg.probableSubmissions[request.requestId];
-        //ATBg.log("Timer fired, deleting reference to submission obj");
       }
     }, 30000);
 

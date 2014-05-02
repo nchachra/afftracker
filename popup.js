@@ -122,31 +122,15 @@ var AffiliateTrackerPopup = {
     var divEl = document.getElementById("merchant-info");
     var tableEl = document.createElement('table');
     var rowCounter = 0;
-    var affCookieNames = this.background.AT_CONSTANTS.affCookieNames;
+    bg = this.background;
+    var affCookieNames = bg.AT_CONSTANTS.affCookieNames;
 
     affCookieNames.forEach(function(cookieName, index) {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
         var popup = AffiliateTrackerPopup;
         cookies.forEach(function(cookie, index) {
-          var merchant = cookie.domain;
-          //TODO: user messages to use the background function for this..
-          if (cookie.domain.indexOf('.') == 0) {
-            merchant = cookie.domain.substring(1);
-          }
-          if (merchant.indexOf('www.') == 0) {
-            merchant = merchant.substring(4);
-          }
-          if ((merchant.slice(-4) == ".com" ||
-               merchant.slice(-4) == ".net" ||
-               merchant.slice(-4) == ".org") &&
-              (merchant.split(".").length == 3)) {
-            merchant = merchant.substring(merchant.indexOf(".") + 1);
-          }
-          if (merchant.indexOf("shareasale") != -1 &&
-              cookie.name.indexOf("MERCHANT") == 0) {
-            merchant = "shareasale.com (merchant:" + cookie.name.substring(8) +
-                 ")";
-          }
+          var merchant = bg.ATBg.getMerchantFromCookieDomain(cookie.domain,
+              cookie.name);
           popup.createRow(tableEl, merchant, cookieName);
         });
       });

@@ -265,7 +265,8 @@ var ATBg = {
     chrome.cookies.getAll({}, function(cookies) {
       cookies.forEach(function(cookie, index) {
         if (ATBg.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
-          var merchant = ATBg.getMerchantFromCookie(cookie);
+          var merchant = ATBg.getMerchantFromCookieParams(cookie.domain,
+            cookie.name);
           // We identified an affiliate cookie.
           var affId = null;
           if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) == -1) {
@@ -285,29 +286,28 @@ var ATBg = {
    * always shareasale.com while the merchant is identified by a unique
    * number in the cookie name itself.
    *
-   * @param{object} A cookie name value object.
+   * @param{string} cookieDomain The domain of a cookie.
+   * @param{string} cookieName The name of the cookie.
    * @return{string} Merchant name. Empty string if merchant is not found.
    *
    * @public
    */
-  getMerchantFromCookie: function(cookie) {
-    var merchant = cookie.domain;
+  getMerchantFromCookieParams: function(cookieDomain, cookieName) {
+    var merchant = cookieDomain;
     if (merchant.indexOf('.') == 0) {
       merchant = merchant.substring(1);
     }
     if (merchant.indexOf('www.') == 0) {
       merchant = merchant.substring(4);
     }
-    if ((merchant.slice(-4) == ".com" ||
-         merchant.slice(-4) == ".net" ||
-         merchant.slice(-4) == ".org") &&
-        (cookie.domain.split(".").length == 3)) {
-      merchant = cookie.domain.substring(cookie.domain.indexOf(".") + 1);
+    if (([".com", ".net", ".org"].indexOf(merchant.slice(-4)) != -1) &&
+        (merchant.split(".").length == 3)) {
+      merchant = merchant.substring(merchant.indexOf(".") + 1);
     }
 
     if (merchant.indexOf("shareasale") != -1 &&
-        cookie.name.indexOf("MERCHANT") == 0) {
-      merchant = "shareasale.com (merchant:" + cookie.name.substring(8) + ")";
+        cookieName.indexOf("MERCHANT") == 0) {
+      merchant = "shareasale.com (merchant:" + cookieName.substring(8) + ")";
     }
     return merchant;
   },
@@ -549,31 +549,6 @@ var ATBg = {
 
 
   /**
-   * Parses a domain name from a cookie to return merchant name. Currently it
-   * simply removes the preceding . or www. from the domain if it exists. The
-   * shareasale merchant is an exception because we have to determine it
-   * ourself.
-   *
-   * @param{string} cookieDomain The domain name from cookie.
-   * @param{string} cookieName The name of cookie. Only needed for shareasale.
-   * @return{string} merchant name.
-   */
-    getMerchantFromCookieDomain: function(cookieDomain, cookieName) {
-      var merchant = "";
-      if (cookieDomain.substring(0, 4) == "www.") {
-        merchant = cookieDomain.substring(4);
-      } else if (cookieDomain[0] == ".") {
-        merchant = cookieDomain.substring(1);
-      }
-      if (merchant == "shareasale.com") {
-        // Append the Merchant ID to it. MERCHANT<merc-id>=aff-id
-        merchant = merchant + "(merchant:" + cookieName.substring(8);
-      }
-      return merchant;
-    },
-
-
-  /**
    * Parses and adds values to the submission object. This object is eventually
    * sent to the server. Either the cookie object needs to be suppied or
    * the response and cookieHeaderValue. CookieValue is only temporarily
@@ -629,7 +604,7 @@ var ATBg = {
       submissionObj["timestamp"] = response.timeStamp;
       submissionObj["cookieSrc"] = "traffic";
       if (merchant == "") {
-        merchant = ATBg.getMerchantFromCookieDomain(
+        merchant = ATBg.getMerchantFromCookieParams(
             submissionObj["cookieDomain"], submissionObj["cookieName"]);
       }
         submissionObj["merchant"] = merchant;

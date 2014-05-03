@@ -129,7 +129,7 @@ var AffiliateTrackerPopup = {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
         var popup = AffiliateTrackerPopup;
         cookies.forEach(function(cookie, index) {
-          var merchant = bg.ATBg.getMerchantFromCookieDomain(cookie.domain,
+          var merchant = bg.ATBg.getMerchantFromCookieParams(cookie.domain,
               cookie.name);
           popup.createRow(tableEl, merchant, cookieName);
         });

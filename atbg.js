@@ -408,6 +408,7 @@ var ATBg = {
       var toPush = ATBg.submissionQueue.shift();
       if (ATBg.debug)
         toPush.testUser = true;
+        console.log(toPush);
       submissions.push(toPush);
     }
     if (submissions.length > 0) {
@@ -589,6 +590,11 @@ var ATBg = {
           cookieHeaderValue.substring(cookieHeaderValue.indexOf("=")) :
           cookieHeaderValue.substring(cookieHeaderValue.indexOf("=") + 1,
               cookieHeaderValue.indexOf(';'));
+      // There might be an error here if the redirect is delayed and the
+      // tab URL changes after we've already queried it.
+      chrome.tabs.get(response.tabId, function(tab) {
+        submissionObj["landing"] = tab.url;
+      });
       submissionObj["cookieValue"] = cookieVal;
       submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
           CryptoJS.enc.Hex);
@@ -603,12 +609,14 @@ var ATBg = {
       submissionObj["type"] = response.type;
       submissionObj["timestamp"] = response.timeStamp;
       submissionObj["cookieSrc"] = "traffic";
+      submissionObj["cookieUrl"] = response.url;
       if (merchant == "") {
         merchant = ATBg.getMerchantFromCookieParams(
             submissionObj["cookieDomain"], submissionObj["cookieName"]);
       }
         submissionObj["merchant"] = merchant;
       }
+
       // This object will be sent to server and deleted when that happens.
       clearTimeout(submissionObj["timer"]);
       delete submissionObj["timer"];
@@ -645,6 +653,26 @@ var ATBg = {
   },
 
 
+  /**
+   * Adds some request/response parameters to the submission object.
+   *
+   * @param{object} submissionObj Object likely to be submitted.
+   * @param{object} webRequest Request or response object.
+   */
+  updateReqRespSeq: function(submissionObj, webRequest) {
+    if (!submissionObj.hasOwnProperty("reqRespSeq")) {
+      submissionObj["reqRespSeq"] = [];
+    }
+    submissionObj.reqRespSeq.push({
+        "method": webRequest.method,
+        "timestamp": webRequest.timestamp,
+        "type": webRequest.type,
+        "url": webRequest.url,
+        "statusLine": (webRequest.hasOwnProperty("statusLine") ?
+                       webRequest.statusLine : null)
+    });
+  },
+
 
   /**
    * Intercept every response. If a request corresponds to affiliate URL
@@ -656,12 +684,14 @@ var ATBg = {
    */
   responseCallback: function(response) {
     var submissionObj = ATBg.getProbableSubmission(response.requestId);
-
     if (submissionObj) {
+      ATBg.updateReqRespSeq(submissionObj, response);
       var setCookieHeaders = response.responseHeaders.filter(function(header) {
         return header.name.toLowerCase() == "set-cookie";
       });
       setCookieHeaders.forEach(function(header) {
+        console.log("response:");
+        console.log(response);
         if (ATBg.cookieAffRe.test(header.value) &&
             // Bluehost 301 redirects from tracking URL to bluehost.com and
             // sends 2 cookies called r. The one set for .bluehost.com is
@@ -679,7 +709,8 @@ var ATBg = {
             ATBg.storeInLocalStorage(submissionObj);
             ATBg.removeSensitiveInfoFromSubmission(submissionObj);
             ATBg.submissionQueue.push(submissionObj);
-            ATBg.notifyUser(submissionObj["merchant"], submissionObj["landing"]);
+            ATBg.notifyUser(submissionObj["merchant"],
+                submissionObj["landing"]);
           }
         }
       });
@@ -689,51 +720,58 @@ var ATBg = {
 
   /**
    * Intercept every outgoing request to partially initialize a submission
-   * object. We finish processing when we receive a reponse. All submission
-   * objects are therefore tracked using the unique request ids Chrome
-   * generates. All probably submission objects have an associated timer that
-   * destroys them at the end of 10 seconds if no response was ever
+   * object. We finish processing when we receive a reponse with a cookie. All
+   * submission objects are tracked using the unique request ids Chrome
+   * generates for a single request chain.
+   *
+   * A single request ID may appear multiple times in either request or
+   * response. We store some of the parameters in these cases.
+   *
+   * Lastly, all probably submission objects have an associated timer that
+   * destroys them at the end of 30 seconds if no response with a cookie was
    * received during this time.
    *
    * @param{Webrequest} request
    */
   requestCallback: function(request) {
-    var newSubmission = {};
-    // Origin is the page that requested merchant URL for affiliate.
-    // Landing is the page that the user saw in the end.
-    // newTab determines whether the mechant URL was requested in new tab.
-    if (request.tabId >= 0) {
-      chrome.tabs.get(request.tabId, function(tab) {
-        newSubmission["origin"] = tab.url;
-        newSubmission["landing"] = tab.url;
-        if (tab.hasOwnProperty("openerTabId")) {
-          //TODO: This is very buggy. It does not reliably indicate the
-          //opener tab. :(
-          chrome.tabs.get(tab.openerTabId, function(openerTab) {
-            //newSubmission["origin"] = openerTab.url;
-            //newSubmission["newTab"] = true;
-          });
-        } else {
-          newSubmission["newTab"] = false;
-        }
-      });
-    }
-
-    var refererHeader = request.requestHeaders.filter(function(header) {
-      return header.name.toLowerCase() === "referer";
-    });
-    if (typeof refererHeader !== "undefined") {
-      newSubmission["referer"] = refererHeader.value;
-    }
-
-    newSubmission["timer"] = setTimeout(function() {
-      if (ATBg.probableSubmissions.hasOwnProperty(
-          request.requestId)) {
-        // Delete this object either way
-        delete ATBg.probableSubmissions[request.requestId];
+    console.log(request);
+    var submissionObj = ATBg.getProbableSubmission(request.requestId);
+    if (!submissionObj) {
+      submissionObj = {};
+      // Origin is the page that requested merchant URL for affiliate.
+      // Landing is the page that the user saw in the end.
+      // newTab determines whether the mechant URL was requested in new tab.
+      if (request.tabId >= 0) {
+        chrome.tabs.get(request.tabId, function(tab) {
+          submissionObj["origin"] = tab.url;
+          submissionObj["culpritReqUrl"] = request.url;
+          if (tab.hasOwnProperty("openerTabId")) {
+            chrome.tabs.get(tab.openerTabId, function(openerTab) {
+              submissionObj["origin"] = openerTab.url;
+              submissionObj["newTab"] = true;
+            });
+          } else {
+            submissionObj["newTab"] = false;
+          }
+        });
       }
-    }, 30000);
-
-    ATBg.probableSubmissions[request.requestId] = newSubmission;
+      submissionObj["timer"] = setTimeout(function() {
+        if (ATBg.probableSubmissions.hasOwnProperty(
+          request.requestId)) {
+          // Delete this object either way
+          delete ATBg.probableSubmissions[request.requestId];
+        }
+      }, 30000);
+      ATBg.probableSubmissions[request.requestId] = submissionObj;
+    }
+    ATBg.updateReqRespSeq(submissionObj, request);
+    // Array.prototype.find does not work, using this instead.
+    // This is redundant, but I keep over-writing to get final referer.
+    var refererHeaders = request.requestHeaders.filter(function(header) {
+      return header.name.toLowerCase() == "referer";
+    });
+    if (refererHeaders.length > 0) {
+      submissionObj["referer"] = refererHeaders[0].value;
+    }
   },
 };

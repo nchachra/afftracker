@@ -17,8 +17,7 @@ Low Pri:
 * Try mrooo.com, opener tab id doesn't seem to work well consistently.
 
 High Pri:
-* send dom content.
-* add the image/frame dimensions to the data.
+* Highlight dom content
 * Testing
 * Option to delete cookies
 * Store all URLs.

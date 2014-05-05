@@ -408,8 +408,8 @@ var ATBg = {
       var toPush = ATBg.submissionQueue.shift();
       if (ATBg.debug)
         toPush.testUser = true;
-        console.log(toPush);
       submissions.push(toPush);
+      ATBg.log(toPush);
     }
     if (submissions.length > 0) {
       ATBg.sendXhr(submissions);
@@ -503,32 +503,32 @@ var ATBg = {
 
 
   /**
-   * Finds the frame with corresponding URL and extracts its properties.
+   * Finds the frame with corresponding URL in the submission object, and
+   * when it figures out the DOM details, it adds the object to the submission
+   * queue.
    *
-   * @param {string} url URL to be matched to the src property of frame and
-   *  img elements.
-   * @param {string} frameType Type of frame as indicated by webRequest details
-   *  object.
-   * @param {string} tabId Tab where the content_script will look for frames.
-   * @return {object} Object containing "size" and "style" fields.
+   * @param{object} submissionObj Object to which DOM data should be added.
+   * @param {integer} tabId
+   * @return {object} Object containing parameters like width, height, etc.
    * @private
    */
-  /*
-  getFrameProperties: function(url, frameType, tabId) {
-    //console.log("trying to get frame properties for " + url + " frame: " +
-    //frameType + " for tab: " + tabId);
-    var properties = {};
-    if (frameType != 'main_frame') {
-      chrome.tabs.sendMessage(tabId, {"method": "getFrame",
-                                      "frameType": frameType},
-                              function(response) {
-        //console.log(response);
-        //properties = response.data;
+  addDomDataAndPushToSubmission: function(submissionObj, tabId) {
+    if (["script", "stylesheet", "main_frame"].
+        indexOf(submissionObj["type"]) == -1) {
+      ATBg.log("trying to get frame properties for " +
+          submissionObj["culpritReqUrl"] + " frame: " +
+          submissionObj["type"] + " for tab: " + tabId);
+      chrome.tabs.sendMessage(tabId, {"method": "getAffiliateDom",
+          "frameType": submissionObj["type"],
+          "url": submissionObj["culpritReqUrl"]}, function(response) {
+        submissionObj["domEls"] = response;
+        ATBg.submissionQueue.push(submissionObj);
       });
+    } else {
+      // We don't calculate visual parameters for scripts, stylesheets, etc.
+      ATBg.submissionQueue.push(submissionObj);
     }
-    return properties;
   },
-  */
 
 
   /**
@@ -595,6 +595,7 @@ var ATBg = {
       chrome.tabs.get(response.tabId, function(tab) {
         submissionObj["landing"] = tab.url;
       });
+
       submissionObj["cookieValue"] = cookieVal;
       submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
           CryptoJS.enc.Hex);
@@ -606,7 +607,6 @@ var ATBg = {
           getCookieParameter(cookieHeaderValue, "expires", "");
       submissionObj["userId"] = ATBg.getUserId();
       submissionObj["affId"] = affId;
-      submissionObj["type"] = response.type;
       submissionObj["timestamp"] = response.timeStamp;
       submissionObj["cookieSrc"] = "traffic";
       submissionObj["cookieUrl"] = response.url;
@@ -614,12 +614,19 @@ var ATBg = {
         merchant = ATBg.getMerchantFromCookieParams(
             submissionObj["cookieDomain"], submissionObj["cookieName"]);
       }
-        submissionObj["merchant"] = merchant;
-      }
-
+      submissionObj["merchant"] = merchant;
       // This object will be sent to server and deleted when that happens.
-      clearTimeout(submissionObj["timer"]);
-      delete submissionObj["timer"];
+      clearTimeout(submissionObj["reqLifeTimer"]);
+      delete submissionObj["reqLifeTimer"];
+
+      // Every submission object which will be subsequently submitted has
+      // a timer to send the object for submission even if we do not receive
+      // any DOM data which can usually take a few seconds after the request.
+      submissionObj["domTimer"] = setTimeout(function() {
+          ATBg.submissionQueue.push(submissionObj);
+          delete submissionObj["domTimer"];
+      }, 60000);
+      }
  },
 
 
@@ -627,12 +634,12 @@ var ATBg = {
    * Shows a notification to the user.
    *
    */
-  notifyUser: function(merchant, landingPage) {
+  notifyUser: function(merchant, origin) {
     var notificationOpts = {
         type: 'basic',
         iconUrl: 'icon.png',
         title: merchant + " cookie",
-        message: "From " + landingPage
+        message: "From " + origin
      }
 
     chrome.notifications.clear(AT_CONSTANTS.NOTIFICATION_ID, function(){
@@ -649,7 +656,7 @@ var ATBg = {
     setTimeout(function() {
       chrome.notifications.clear(AT_CONSTANTS.NOTIFICATION_ID,
           function() {});
-    }, 1500);
+    }, 2000);
   },
 
 
@@ -675,6 +682,50 @@ var ATBg = {
 
 
   /**
+   * Submission objects for a given tabId.
+   *
+   * @param{integer} tabId
+   * @return{array} List of submission objects.
+   */
+  getSubmissionObjectsForTabId: function(tabId) {
+    var matchingObjs = [];
+    for (requestId in ATBg.probableSubmissions) {
+      if (ATBg.probableSubmissions.hasOwnProperty(requestId)) {
+        var candidate = ATBg.probableSubmissions[requestId];
+        if (!candidate.hasOwnProperty("domEls") &&
+            candidate.hasOwnProperty("tabId") && candidate.tabId == tabId) {
+            matchingObjs.push(candidate);
+        }
+      }
+    }
+    return matchingObjs;
+  },
+
+
+  /**
+   * When a tab completes loading, we check if the corresponding submission
+   * object is still around and does not have the DOM data in it already.
+   * If so, we query data for the DOM element with affiliate URL, add it
+   * to the submission queue, and clear its DOM request timer.
+   * If no such submission object exists, we ignore the data.
+   *
+   * @param{string} tabId The id of the tab that finished loading.
+   * @param{string} changeInfo The status of the page.
+   * @param{object} Tab object.
+   */
+  tabLoadCallback: function(tabId, changeInfo, tab) {
+    if (changeInfo.status == "complete") {
+      var submissionObjects = ATBg.getSubmissionObjectsForTabId(tabId);
+      submissionObjects.forEach(function(obj) {
+        ATBg.addDomDataAndPushToSubmission(obj, tab.id);
+        clearTimeout(obj["domTimer"]);
+        delete obj["domTimer"];
+      });
+    }
+  },
+
+
+  /**
    * Intercept every response. If a request corresponds to affiliate URL
    * determined by looking at the Set-Cookie headers, then parse out useful
    * information, store it in local storage and server, notify user,
@@ -690,8 +741,6 @@ var ATBg = {
         return header.name.toLowerCase() == "set-cookie";
       });
       setCookieHeaders.forEach(function(header) {
-        console.log("response:");
-        console.log(response);
         if (ATBg.cookieAffRe.test(header.value) &&
             // Bluehost 301 redirects from tracking URL to bluehost.com and
             // sends 2 cookies called r. The one set for .bluehost.com is
@@ -708,9 +757,9 @@ var ATBg = {
                 response, merchant);
             ATBg.storeInLocalStorage(submissionObj);
             ATBg.removeSensitiveInfoFromSubmission(submissionObj);
-            ATBg.submissionQueue.push(submissionObj);
             ATBg.notifyUser(submissionObj["merchant"],
-                submissionObj["landing"]);
+                submissionObj["origin"]);
+
           }
         }
       });
@@ -734,7 +783,6 @@ var ATBg = {
    * @param{Webrequest} request
    */
   requestCallback: function(request) {
-    console.log(request);
     var submissionObj = ATBg.getProbableSubmission(request.requestId);
     if (!submissionObj) {
       submissionObj = {};
@@ -745,6 +793,7 @@ var ATBg = {
         chrome.tabs.get(request.tabId, function(tab) {
           submissionObj["origin"] = tab.url;
           submissionObj["culpritReqUrl"] = request.url;
+          submissionObj["type"] = request.type;
           if (tab.hasOwnProperty("openerTabId")) {
             chrome.tabs.get(tab.openerTabId, function(openerTab) {
               submissionObj["origin"] = openerTab.url;
@@ -755,13 +804,15 @@ var ATBg = {
           }
         });
       }
-      submissionObj["timer"] = setTimeout(function() {
+      submissionObj["reqLifeTimer"] = setTimeout(function() {
         if (ATBg.probableSubmissions.hasOwnProperty(
           request.requestId)) {
           // Delete this object either way
           delete ATBg.probableSubmissions[request.requestId];
         }
       }, 30000);
+      // We use this to find DOM content later.
+      submissionObj["tabId"] = request.tabId;
       ATBg.probableSubmissions[request.requestId] = submissionObj;
     }
     ATBg.updateReqRespSeq(submissionObj, request);
@@ -775,3 +826,7 @@ var ATBg = {
     }
   },
 };
+
+
+
+

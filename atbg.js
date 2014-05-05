@@ -352,7 +352,20 @@ var ATBg = {
         cookie);
     ATBg.storeInLocalStorage(newSubmission);
     ATBg.removeSensitiveInfoFromSubmission(newSubmission);
-    ATBg.submissionQueue.push(newSubmission);
+    ATBg.queueForSubmission(newSubmission);
+  },
+
+
+  /**
+   * Push an object into submission queue.
+   *
+   * @param{object} submissionObj Object to be eventually sent to server.
+   */
+  queueForSubmission: function(submissionObj) {
+    if (ATBg.debug) {
+      submissionObj["testUser"] = true;
+      ATBg.submissionQueue.push(submissionObj);
+    }
   },
 
 
@@ -392,8 +405,6 @@ var ATBg = {
   },
 
 
-  //objects. Pull from it every so often, send to server.
-  //Then make modifications on the server to accept such data as well.
   /**
    * Sends objects about all the cookies currently in the submission queue
    * to the server.
@@ -403,16 +414,8 @@ var ATBg = {
   sendToServer: function() {
     // Send messages up to length
     var len = ATBg.submissionQueue.length;
-    var submissions = [];
-    for (var i=0; i < len; i++) {
-      var toPush = ATBg.submissionQueue.shift();
-      if (ATBg.debug)
-        toPush.testUser = true;
-      submissions.push(toPush);
-      ATBg.log(toPush);
-    }
-    if (submissions.length > 0) {
-      ATBg.sendXhr(submissions);
+    if (len > 0) {
+      ATBg.sendXhr(ATBg.submissionQueue.splice(0, len));
     }
   },
 
@@ -522,11 +525,9 @@ var ATBg = {
           "frameType": submissionObj["type"],
           "url": submissionObj["culpritReqUrl"]}, function(response) {
         submissionObj["domEls"] = response;
-        ATBg.submissionQueue.push(submissionObj);
       });
     } else {
-      // We don't calculate visual parameters for scripts, stylesheets, etc.
-      ATBg.submissionQueue.push(submissionObj);
+      submissionObj["domEls"] = null;
     }
   },
 
@@ -573,6 +574,7 @@ var ATBg = {
       submissionObj["cookieName"] = cookie.name;
       submissionObj["cookiePath"] = cookie.path;
       submissionObj["landing"] = null;
+      submissionObj["domEls"] = null;
       submissionObj["merchant"] = merchant;
       submissionObj["newTab"] = null;
       submissionObj["origin"] = null;
@@ -584,17 +586,34 @@ var ATBg = {
       submissionObj["cookieSrc"] = "store";
       submissionObj["cookieValue"] = cookie.value;
     } else if (response && cookieHeaderValue) {
+      // This object will be sent to server and deleted when that happens.
+      clearTimeout(submissionObj["reqLifeTimer"]);
+      delete submissionObj["reqLifeTimer"];
+
+      submissionObj["sendMonitorInterval"] = setInterval(function(){
+        if (submissionObj.hasOwnProperty("landing") &&
+            submissionObj.hasOwnProperty("domEls") &&
+            submissionObj.hasOwnProperty("origin") &&
+            submissionObj.hasOwnProperty("culpritReqUrl") &&
+            submissionObj.hasOwnProperty("type") &&
+            submissionObj.hasOwnProperty("newTab")) {
+          clearInterval(submissionObj["sendMonitorInterval"]);
+          delete submissionObj["sendMonitorInterval"];
+          ATBg.queueForSubmission(submissionObj);
+          chrome.tabs.sendMessage(submissionObj["tabId"],
+            {"method": "highlightAffiliateDom",
+            "frameType": submissionObj["type"],
+            "url": submissionObj["culpritReqUrl"]}, function(response) {
+          });
+        }
+      }, 1000);
+
       submissionObj["cookieName"] = cookieHeaderValue.substring(0,
           cookieHeaderValue.indexOf("="));
       var cookieVal = (cookieHeaderValue.indexOf(";") == -1) ?
           cookieHeaderValue.substring(cookieHeaderValue.indexOf("=")) :
           cookieHeaderValue.substring(cookieHeaderValue.indexOf("=") + 1,
               cookieHeaderValue.indexOf(';'));
-      // There might be an error here if the redirect is delayed and the
-      // tab URL changes after we've already queried it.
-      chrome.tabs.get(response.tabId, function(tab) {
-        submissionObj["landing"] = tab.url;
-      });
 
       submissionObj["cookieValue"] = cookieVal;
       submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
@@ -615,18 +634,20 @@ var ATBg = {
             submissionObj["cookieDomain"], submissionObj["cookieName"]);
       }
       submissionObj["merchant"] = merchant;
-      // This object will be sent to server and deleted when that happens.
-      clearTimeout(submissionObj["reqLifeTimer"]);
-      delete submissionObj["reqLifeTimer"];
-
       // Every submission object which will be subsequently submitted has
-      // a timer to send the object for submission even if we do not receive
-      // any DOM data which can usually take a few seconds after the request.
+      // a timer that flags the object as ready for submission, even if we
+      // never figured out its dom.
       submissionObj["domTimer"] = setTimeout(function() {
-          ATBg.submissionQueue.push(submissionObj);
-          delete submissionObj["domTimer"];
+        console.log("dom timer fired. Setting dom els to null, deleting timer");
+        submissionObj["domEls"] = null;
+        delete submissionObj["domTimer"];
       }, 60000);
-      }
+      // There might be an error here if the redirect is delayed and the
+      // tab URL changes after we've already queried it.
+      chrome.tabs.get(response.tabId, function(tab) {
+        submissionObj["landing"] = tab.url;
+      });
+    }
  },
 
 

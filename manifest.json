@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*"],
-      "js": ["requesthandlercs.js", "constants.js"],
+      "js": ["requesthandlercs.js", "constants.js", "jquery-2.1.1.min.js"],
       "all_frames": true
     }
   ],
@@ -32,5 +32,7 @@
     "storage",
     "cookies",
     "management"
-  ]
+  ],
+
+  "web_accessible_resources": ["icons/zoomicon.png"]
 }

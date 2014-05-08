@@ -45,9 +45,12 @@ var RequestHandlerCS = {
 
 
   /**
-   * Adds a magnifying glass icon next to the element provided. Also associates
-   * an onhover() handler for this icon which shows a zoomed in version of the
-   * element.
+   * Adds a magnifying glass icon next to the element provided. Also causes
+   * a zoom transformation using CSS on the icon. Artificially increases the
+   * size of the element to at least 10px square if it's smaller and forces
+   * the visibility to visible when rendered. On hovering over the
+   * corresponding magnifying icon or the element, the tooltip shows the
+   * original properties.
    *
    * @param{request} object The request object that has parameters needed to
    *    find the element to be highlighted.
@@ -62,11 +65,22 @@ var RequestHandlerCS = {
     var len = nodeList.length;
     for (i = 0; i < len; i++) {
       var el = nodeList[i];
-      var zoomIconEl = RequestHandlerCS.getZoomIconEl(el);
+      el.className = el.className + " aff-zoom";
       var parent = el.parentNode;
+      var zoomIconEl = RequestHandlerCS.getZoomIconEl(el);
+      if (el.width < 10) {
+        el.style.width = "10px";
+      }
+      if (el.height < 10) {
+        el.style.height = "10px";
+      }
+      el.style.visibility = "visible";
       parent.insertBefore(zoomIconEl, el);
-      // TODO add a higlighting class to el.
+      el.title = "Node type: " + el.tagName +
+        "; Dimensions: " + el.width + "X" + el.height +
+        "; Visibility: " + el.hidden;
     }
+    return nodeList;
   },
 
 
@@ -80,9 +94,8 @@ var RequestHandlerCS = {
   getZoomIconEl: function(el) {
     var icon = document.createElement('img');
     icon.src =  chrome.extension.getURL("icons/zoomicon.png");
-    icon.style.width = "30px";
-    icon.style.height = "30px";
-    console.log(icon);
+    icon.style.width = "20px";
+    icon.style.height = "20px";
     return icon;
   },
 }

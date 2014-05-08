@@ -19,7 +19,8 @@
   "content_scripts": [
     {
       "matches": ["http://*/*"],
-      "js": ["requesthandlercs.js", "constants.js", "jquery-2.1.1.min.js"],
+      "js": ["requesthandlercs.js", "constants.js"],
+      "css": ["zoom.css"],
       "all_frames": true
     }
   ],

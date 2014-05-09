@@ -1,4 +1,5 @@
 Low Pri:
+* For shareasale, affiliatewindow, show merchant name rather than the code.
 * Switch background to event pages, this is not cool bro
 * Make all merchant icons be the same size.
 * Identify failed cookie stuffing events using URL patterns.
@@ -20,6 +21,8 @@ Low Pri:
 High Pri:
 * Test suite.
 * Option to delete cookies
+* Affiliate  window
+* Commission Junction
 
 
 NOTES:

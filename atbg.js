@@ -115,6 +115,12 @@ var ATBg = {
 
             // AffiliateWizAffiliateID=AffiliateID=41266&...
             '|(AffiliateWizAffiliateID=.*=AffiliateID=[^&]+&.*)',
+
+            // AffiliateWindow.
+            // Merchant is represented by digits after aw.
+            // awDIGITS=publisherId|adclickedId|adgroupid|timeofclick|
+            //    referenceaddedbyreferrer|typeofad|idforproduct
+            '|(aw\\d+=(\\d+)\\|.*)',
         ].join('')),
 
 
@@ -264,6 +270,7 @@ var ATBg = {
         uploadUrl = "http://angelic.ucsd.edu:5000/upload-ext-data";
         break;
       case "cookie":
+        ATBg.log(data);
         uploadUrl = "http://angelic.ucsd.edu:5000/upload-cookie-data";
         break;
     }
@@ -275,7 +282,9 @@ var ATBg = {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", uploadUrl);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(data);
+    if (!ATBg.debug) {
+      xhr.send(data);
+    }
   },
 
 
@@ -306,7 +315,8 @@ var ATBg = {
    * Returns the merchant name from the cookie. Generally, the cookie domain is
    * the merchant except in the case of ShareASale where the domain is
    * always shareasale.com while the merchant is identified by a unique
-   * number in the cookie name itself.
+   * number in the cookie name itself. Similarly for AffilaiteWindow, the
+   * domain is .awin1.com while the merchant code is contained in the cookie.
    *
    * @param{string} cookieDomain The domain of a cookie.
    * @param{string} cookieName The name of the cookie.
@@ -330,6 +340,9 @@ var ATBg = {
     if (merchant.indexOf("shareasale") != -1 &&
         cookieName.indexOf("MERCHANT") == 0) {
       merchant = "shareasale.com (merchant:" + cookieName.substring(8) + ")";
+    } else if (merchant.indexOf("awin1.com") != -1 &&
+        cookieName.indexOf("aw") == 0) {
+      merchant = "affiliate window (merchant:" + cookieName.substring(2) + ")";
     }
     return merchant;
   },
@@ -790,7 +803,11 @@ var ATBg = {
             // Bluehost 301 redirects from tracking URL to bluehost.com and
             // sends 2 cookies called r. The one set for .bluehost.com is
             // empty. The real cookie is the one set for www.bluehost.com.
-            !header.value.indexOf("domain=.bluehost.com;") != -1) {
+            !header.value.indexOf("domain=.bluehost.com;") != -1 &&
+            // Some merchants will set the same cookie as affiliate window
+            // with their domains. Ignore those, it's redundant info for us.
+            !(header.value.indexOf("aw") == 0 &&
+              header.value.indexOf("domain=.awin1.com;") == -1)) {
 
           var merchant = ATBg.getMerchantFromUrl(response.url);
           var affId = (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) != -1) ?

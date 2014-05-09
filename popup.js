@@ -43,6 +43,9 @@ var AffiliateTrackerPopup = {
       return "icons/envato.com.png";
     } else if(merchant.indexOf("shareasale") != -1) {
       return "icons/shareasale.com.png";
+    } else if(merchant.indexOf("affiliate window") != -1) {
+      console.log("aff window");
+      return "icons/affiliatewindow.png"
     } else if (this.ICONS_AVAILABLE.indexOf(merchant) != -1) {
       return "icons/" + merchant + ".png";
     } else {
@@ -124,6 +127,7 @@ var AffiliateTrackerPopup = {
     var rowCounter = 0;
     bg = this.background;
     var affCookieNames = bg.AT_CONSTANTS.affCookieNames;
+    var affCookieDomainNames = bg.AT_CONSTANTS.affCookieDomainNames;
 
     affCookieNames.forEach(function(cookieName, index) {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
@@ -131,10 +135,26 @@ var AffiliateTrackerPopup = {
         cookies.forEach(function(cookie, index) {
           var merchant = bg.ATBg.getMerchantFromCookieParams(cookie.domain,
               cookie.name);
-          popup.createRow(tableEl, merchant, cookieName);
+          if (merchant != "") {
+            popup.createRow(tableEl, merchant, cookieName);
+          }
         });
       });
     });
+
+    affCookieDomainNames.forEach(function(cookieDomain, index) {
+      chrome.cookies.getAll({"domain": cookieDomain}, function(cookies) {
+        var popup = AffiliateTrackerPopup;
+        cookies.forEach(function(cookie, index) {
+          var merchant = bg.ATBg.getMerchantFromCookieParams(cookie.domain,
+              cookie.name);
+          if (merchant != "") {
+            popup.createRow(tableEl, merchant, cookie.name);
+          }
+        });
+      });
+    });
+
 
     divEl.appendChild(tableEl);
   }

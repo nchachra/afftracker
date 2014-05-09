@@ -76,4 +76,13 @@ AT_CONSTANTS = {
                     "MERCHANT" //shareAsale
                    ],
 
+
+  /**
+   * We use this mapping to populate the dom with cookies where the cookie
+   * name is not unique to a program. For example, AffiliateWindow cookies
+   * all begin with "aw" but have different names. 
+   */
+  affCookieDomainNames: [".awin1.com", //AffiliateWindow
+                        ],
+
 };

@@ -12,8 +12,9 @@ var RequestHandlerCS = {
 
   /**
    * Returns attributes for the DOM element that corresponds to affiliate
-   * URL. Attributes include size and visibility of the element. As a side
-   * effect, the function also highlights the DOM element for the user.
+   * URL. Attributes include size and visibility of the element. If the
+   * element has a parent iframe, it includes parameters about it in a
+   * parent field.
    *
    * @param{object} request The request object with arguments from background
    *    script.
@@ -31,14 +32,35 @@ var RequestHandlerCS = {
       var response = [];
       for (i = 0; i < len; i++) {
         var el = nodeList[i];
-        response.push({"height": el.height,
-                       "width": el.width,
-                       "naturalWidth": el.naturalWidth,
-                       "naturalHeight": el.naturalHeight,
-                       "title": el.title,
-                       "innerHTML": el.innerHTML,
-                       "outerHTML": el.outerHTML,
-                       "hidden": el.hidden});
+        var iframeInfo = null;
+        if (window !== window.top) {
+          // It is contained in an iframe.
+          var parentFrame = window.frameElement;
+          iframeInfo = {    "clientHeight": parentFrame.clientHeight,
+                            "clientWidth": parentFrame.clientWidth,
+                            "height": parentFrame.height,
+                            "width": parentFrame.width,
+                            "hidden": parentFrame.hidden,
+                            "innerHTML": parentFrame.innerHTML,
+                            "tagName": parentFrame.tagName,
+                            "outerHTML": parentFrame.outerHTML,
+                            "src": parentFrame.src,
+                            };
+        }
+        var elProperties = {"height": el.height,
+                            "width": el.width,
+                            "naturalWidth": el.naturalWidth,
+                            "naturalHeight": el.naturalHeight,
+                            "title": el.title,
+                            "innerHTML": el.innerHTML,
+                            "outerHTML": el.outerHTML,
+                            "hidden": el.hidden,
+                            "tagName": el.tagName,
+                            "src": el.src};
+        if (iframeInfo) {
+          elProperties["elParentIframe"] = iframeInfo;
+        }
+        response.push(elProperties);
       }
       return (response.length > 0 ? response : null);
   },
@@ -55,6 +77,7 @@ var RequestHandlerCS = {
    * @param{request} object The request object that has parameters needed to
    *    find the element to be highlighted.
    */
+  // TODO: redundancy and general ugliness. Refactor.
   highlightElement: function(request) {
     if (!RequestHandlerCS.frameTagMap.hasOwnProperty(request.frameType)) {
       return null;
@@ -65,6 +88,32 @@ var RequestHandlerCS = {
     var len = nodeList.length;
     for (i = 0; i < len; i++) {
       var el = nodeList[i];
+      // If it is contained in iframe, highlight it as well. This could
+      // potentially be recursive problem, for now stick to a single level
+      // of depth.
+      if (window != window.top) {
+        var parentFrame = window.frameElement;
+        if (parentFrame.className.indexOf("aff-zoom") == -1) {
+          // We haven't already highlighted this parent.
+          if (parentFrame.height < 100) {
+            parentFrame.height = "100px";
+          }
+          if (parentFrame.width < 100) {
+            parentFrame.width = "100px";
+          }
+          parentFrame.style.visibility = "visible";
+          parentFrame.style.position = "absolute";
+          parentFrame.style.zIndex = "10000";
+          var parentZoomIcon = RequestHandlerCS.getZoomIconEl(parentFrame);
+          parentFrame.className = parentFrame.className + " aff-zoom";
+          var parent = parentFrame.parentNode;
+          parent.insertBefore(parentZoomIcon, parentFrame);
+          parentFrame.title = "Node type: " + parentFrame.tagName +
+            "; Dimensions: " + parentFrame.width + "X" + parentFrame.height +
+            "; Visibility: " + parentFrame.hidden;
+        }
+      }
+
       el.className = el.className + " aff-zoom";
       var parent = el.parentNode;
       var zoomIconEl = RequestHandlerCS.getZoomIconEl(el);
@@ -75,6 +124,8 @@ var RequestHandlerCS = {
         el.style.height = "10px";
       }
       el.style.visibility = "visible";
+      el.style.position = "absolute";
+      el.style.zIndex = "10000";
       parent.insertBefore(zoomIconEl, el);
       el.title = "Node type: " + el.tagName +
         "; Dimensions: " + el.width + "X" + el.height +

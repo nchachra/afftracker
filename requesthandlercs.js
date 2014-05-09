@@ -40,7 +40,7 @@ var RequestHandlerCS = {
                        "outerHTML": el.outerHTML,
                        "hidden": el.hidden});
       }
-      return response;
+      return (response.length > 0 ? response : null);
   },
 
 
@@ -107,8 +107,14 @@ var RequestHandlerCS = {
  */
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.method == "getAffiliateDom") {
-      var response = RequestHandlerCS.getAffiliateDom(request);
-      sendResponse(response);
+        var response = RequestHandlerCS.getAffiliateDom(request);
+        // This check is necessary because every tab has this
+        // content script in it and is listening for this message. Sender
+        // merely identifies an extension, but not the tabId...
+        // TODO: find a way to optimize.
+        if(response) {
+          sendResponse(response);
+        }
     } else if (request.method == "highlightAffiliateDom") {
       RequestHandlerCS.highlightElement(request);
       sendResponse({});

@@ -3,7 +3,7 @@ var ATBg = {
   /*
    * Debugging flag. Don't overwhelm logger for others.
    */
-  debug: true,
+  debug: false,
 
   /**
    * Regular expression used for matching visited merchant URLs for merchants
@@ -228,32 +228,54 @@ var ATBg = {
     var pendingExtSubmissions = [];
     chrome.management.getAll(function(extensions) {
       extensions.forEach(function (extension, index) {
-        pendingExtSubmissions.push({"name": extension.name,
-                                     "id": extension.id,
-                                     "description": extension.description,
-                                     "userId": ATBg.getUserId(),
-                                     "timestamp": new Date().getTime() / 1000
-                                    });
+        // Exclude default extensions.
+        if (["Google Docs", "Google Drive", "YouTube", "Google Search",
+            "Gmail", "AffiliateTracker"].indexOf(extension.name) == -1) {
+          var ob = {"name": extension.name,
+                    "id": extension.id,
+                    "description": extension.description,
+                    "userId": ATBg.getUserId(),
+                    "timestamp": new Date().getTime() / 1000,
+                    "enabled": extension.enabled}
+          if (ATBg.debug)
+            ob["testUser"] = true;
+          pendingExtSubmissions.push(ob);
+        }
       });
       if (pendingExtSubmissions.length > 0) {
-        ATBg.sendXhr(pendingExtSubmissions);
+        ATBg.sendXhr(JSON.stringify(pendingExtSubmissions), "extension");
+        pendingExtSubmissions.length = 0;
       }
     });
   },
 
 
   /**
-   * Sends an object to server asynchronously.
+   * Sends an string to server asynchronously. Picks the URL to upload to
+   * depending on the datatype which is one of "extension" or "cookie".
    *
-   * @param{object} ob Object to be serialized and sent to server.
+   * @param{string} data JSON encoded string to be sent to server.
+   * @param{string} datatype The kind of data: "extension" or "cookie".
    */
-  sendXhr: function(ob) {
-    if (!ATBg.debug) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", "http://angelic.ucsd.edu:5000/upload");//TODO? a different URL?
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(ob));
+  sendXhr: function(data, datatype) {
+    var uploadUrl = null;
+    switch (datatype) {
+      case "extension":
+        uploadUrl = "http://angelic.ucsd.edu:5000/upload-ext-data";
+        break;
+      case "cookie":
+        uploadUrl = "http://angelic.ucsd.edu:5000/upload-cookie-data";
+        break;
     }
+    if (!uploadUrl) {
+      ATBg.log("Invalid datatype for sendXhr()");
+      return;
+    }
+    // Send
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", uploadUrl);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(data);
   },
 
 
@@ -364,8 +386,8 @@ var ATBg = {
   queueForSubmission: function(submissionObj) {
     if (ATBg.debug) {
       submissionObj["testUser"] = true;
-      ATBg.submissionQueue.push(submissionObj);
     }
+    ATBg.submissionQueue.push(submissionObj);
   },
 
 
@@ -411,11 +433,13 @@ var ATBg = {
    *
    * @private
    */
-  sendToServer: function() {
+  sendCookiesToServer: function() {
     // Send messages up to length
     var len = ATBg.submissionQueue.length;
     if (len > 0) {
-      ATBg.sendXhr(ATBg.submissionQueue.splice(0, len));
+      // Frees up memory because we are calling splice.
+      ATBg.sendXhr(JSON.stringify(ATBg.submissionQueue.splice(0, len)),
+          "cookie");
     }
   },
 
@@ -518,9 +542,9 @@ var ATBg = {
   addDomDataAndPushToSubmission: function(submissionObj, tabId) {
     if (["script", "stylesheet", "main_frame"].
         indexOf(submissionObj["type"]) == -1) {
-      ATBg.log("trying to get frame properties for " +
-          submissionObj["culpritReqUrl"] + " frame: " +
-          submissionObj["type"] + " for tab: " + tabId);
+      //ATBg.log("trying to get frame properties for " +
+      //    submissionObj["culpritReqUrl"] + " frame: " +
+      //    submissionObj["type"] + " for tab: " + tabId);
       chrome.tabs.sendMessage(tabId, {"method": "getAffiliateDom",
           "frameType": submissionObj["type"],
           "url": submissionObj["culpritReqUrl"]}, function(response) {
@@ -638,7 +662,7 @@ var ATBg = {
       // a timer that flags the object as ready for submission, even if we
       // never figured out its dom.
       submissionObj["domTimer"] = setTimeout(function() {
-        console.log("dom timer fired. Setting dom els to null, deleting timer");
+        ATBg.log("dom timer fired. Setting dom els to null, deleting timer");
         submissionObj["domEls"] = null;
         delete submissionObj["domTimer"];
       }, 60000);
@@ -738,9 +762,9 @@ var ATBg = {
     if (changeInfo.status == "complete") {
       var submissionObjects = ATBg.getSubmissionObjectsForTabId(tabId);
       submissionObjects.forEach(function(obj) {
-        ATBg.addDomDataAndPushToSubmission(obj, tab.id);
         clearTimeout(obj["domTimer"]);
         delete obj["domTimer"];
+        ATBg.addDomDataAndPushToSubmission(obj, tab.id);
       });
     }
   },
@@ -828,7 +852,7 @@ var ATBg = {
       submissionObj["reqLifeTimer"] = setTimeout(function() {
         if (ATBg.probableSubmissions.hasOwnProperty(
           request.requestId)) {
-          // Delete this object either way
+          // Delete this object reference either way
           delete ATBg.probableSubmissions[request.requestId];
         }
       }, 30000);

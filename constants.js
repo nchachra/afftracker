@@ -83,6 +83,7 @@ AT_CONSTANTS = {
    * all begin with "aw" but have different names. 
    */
   affCookieDomainNames: [".awin1.com", //AffiliateWindow
+                         ".linksynergy.com", // LinkSynergy
                         ],
 
 };

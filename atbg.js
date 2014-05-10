@@ -1,7 +1,7 @@
 var ATBg = {
 
   /*
-   * Debugging flag. Don't overwhelm logger for others.
+   * Debugging flag
    */
   debug: false,
 
@@ -121,6 +121,12 @@ var ATBg = {
             // awDIGITS=publisherId|adclickedId|adgroupid|timeofclick|
             //    referenceaddedbyreferrer|typeofad|idforproduct
             '|(aw\\d+=(\\d+)\\|.*)',
+
+            // LinkShare.
+            // Merchant is represented by digits followed by lsclick_mid in
+            // the cookie name.
+            // lsclick_midMERCHANTID=TIMESTAMP|AFFID-RANDOMSTRING
+            '|(lsclick_mid\\d+=.*\\|(.*)-.*)',
         ].join('')),
 
 
@@ -313,10 +319,16 @@ var ATBg = {
 
   /**
    * Returns the merchant name from the cookie. Generally, the cookie domain is
-   * the merchant except in the case of ShareASale where the domain is
-   * always shareasale.com while the merchant is identified by a unique
-   * number in the cookie name itself. Similarly for AffilaiteWindow, the
-   * domain is .awin1.com while the merchant code is contained in the cookie.
+   * the merchant with the following exceptions:
+   *
+   * ShareASale: the domain is always shareasale.com while the merchant is
+   * identified by a unique number in the cookie name itself.
+   *
+   * AffilaiteWindow: domain is .awin1.com while the merchant code is contained
+   * in the cookie.
+   *
+   * LinkShare: The domain is always .linksynergy.com and the merchant code
+   * is in the cookie name.
    *
    * @param{string} cookieDomain The domain of a cookie.
    * @param{string} cookieName The name of the cookie.
@@ -343,6 +355,9 @@ var ATBg = {
     } else if (merchant.indexOf("awin1.com") != -1 &&
         cookieName.indexOf("aw") == 0) {
       merchant = "affiliate window (merchant:" + cookieName.substring(2) + ")";
+    } else if (merchant.indexOf("linksynergy.com") != -1 &&
+        cookieName.indexOf("lsclick_mid") == 0) {
+      merchant = "linkshare (merchant:" + cookieName.substring(11) + ")";
     }
     return merchant;
   },

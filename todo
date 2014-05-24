@@ -1,4 +1,5 @@
 Low Pri:
+* For shareasale, affiliatewindow, show merchant name rather than the code.
 * Switch background to event pages, this is not cool bro
 * Make all merchant icons be the same size.
 * Identify failed cookie stuffing events using URL patterns.
@@ -13,20 +14,18 @@ Low Pri:
   blogadd=joneslow174
   aff24h=5252696
   aref=12026 aref=none aref=794798
+ godaddy example:   //?isc=cjcho199a&utm_campaign=affiliates_cj_199hst&utm_source=Commission%20Junction&utm_medium=External%2BAffil&utm_content=cjcho199a&cvosrc=affiliate.cj.PID
+* Try mrooo.com, opener tab id doesn't seem to work well consistently. (seems like it blacklisted me though. oh well.)
 
 
 High Pri:
-* send dom content.
-* add the image/frame dimensions to the data.
-* godaddy example:   //?isc=cjcho199a&utm_campaign=affiliates_cj_199hst&utm_source=Commission%20Junction&utm_medium=External%2BAffil&utm_content=cjcho199a&cvosrc=affiliate.cj.PID
-* Looks like pop overs/unders aren't held well. It does not identify the page user had visited. For example, visit http://thishitseasy.blogspot.com/. It knows the cookie, but doesn't know which page gave user the cookie :(
-* For pages like http://www.smartincome.org/ not everything is being submitted. Requests are being throttled: http://dev.chromium.org/throttling
-* use email feedback to fix up/refactor.
-* Testing
+* Test suite.
 * Option to delete cookies
+* Affiliate  window
+* Commission Junction
 
 
-Notes:
+NOTES:
 These are included in the above but might be useful later.
   * joyo.com redirects to amazon.cn
   * kindle.amazon.com
@@ -43,3 +42,64 @@ I have seen "referer" cookie used sometimes to store affilate
 ID, but this is rare. It seems to store the actual referrer
 almost always. As a result, I am not including it in the cookie
 Regex.
+
+CookieMap:
+We've lost use for this, so I'm saving it here for now.
+var cookieMap = { /* Amazon sites */
+                  "amazon.com": "UserPref",
+                  "amazon.de": "UserPref",
+                  "amazon.at": "UserPref",
+                  "amazon.ca": "UserPref",
+                  "amazon.cn": "UserPref",
+                  "amazon.fr": "UserPref",
+                  "amazon.it": "UserPref",
+                  "amazon.co.jp": "UserPref",
+                  "amazon.es": "UserPref",
+                  "amazon.co.uk": "UserPref",
+                  "amazon.in": "UserPref",
+                  "joyo.com": "UserPref",
+                  "amazonsupply.com": "UserPref",
+                  "javari.co.uk": "UserPref",
+                  "javari.de": "UserPref",
+                  "javari.fr": "UserPref",
+                  "javari.jp": "UserPref",
+                  "buyvip.com":  "UserPref",
+
+                  /* Hosting sites */
+                  "hostgator.com": "GatorAffiliate",
+                  "dreamhost.com": "referred",
+                  "inmotionhosting.com": "affiliates",
+                  "ipage.com": "AffCookie",
+                  "fatcow.com": "AffCookie",
+                  "startlogic.com": "AffCookie",
+                  "ipower.com": "AffCookie",
+                  "bizland.com": "AffCookie",
+                  "ixwebhosting.com": "IXAFFILIATE",
+                  "webhostingpad.com": "idev",
+                  "hostrocket.com": "idev",
+                  "arvixe.com": "idev",
+                  "webhostinghub.com": "refid",
+                  "hosting24.com": "aff",
+                  "bluehost.com": "r",
+                  "hostmonster.com": "r",
+                  "justhost.com": "r",
+                  "lunarpages.com": "lunarsale",
+
+                  /* Hotels/booking sites*/
+                  "hotelscombined.com": "a_aid",
+                  "datahc.com": "a_aid", // This is hotelscombined too.
+
+                  /* Envato marketplaces sites */
+                  "themeforest.net": "referring_user",
+                  "codecanyon.net": "referring_user",
+                  "videohive.net": "referring_user",
+                  "audiojungle.net": "referring_user",
+                  "graphicriver.net": "referring_user",
+                  "photodune.net": "referring_user",
+                  "3docean.net": "referring_user",
+                  "activeden.net": "referring_user",
+                  "envato.com": "referring_user",
+                  /* Others */
+                  "hidemyass.com": "aff_tag",
+                 };
+

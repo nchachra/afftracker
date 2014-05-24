@@ -3,7 +3,7 @@
 
   "name": "AffiliateTracker",
   "description": "Track affiliates earning commission on your next purchase",
-  "version": "2.5.1",
+  "version": "2.6.1",
 
   "browser_action": {
     "default_icon": "icon.png",
@@ -12,14 +12,15 @@
   },
 
   "background": {
-    "scripts": ["md5.js", "enc-base64-min.js", "constants.js", "trackrequest.js"],
+    "scripts": ["md5.js", "enc-base64-min.js", "constants.js", "atbg.js", "initbg.js"],
     "persistent": true
   },
 
   "content_scripts": [
     {
       "matches": ["http://*/*"],
-      "js": ["content_script.js", "constants.js"],
+      "js": ["requesthandlercs.js", "constants.js"],
+      "css": ["zoom.css"],
       "all_frames": true
     }
   ],
@@ -30,6 +31,9 @@
     "webRequest",
     "tabs",
     "storage",
-    "cookies"
-  ]
+    "cookies",
+    "management"
+  ],
+
+  "web_accessible_resources": ["icons/zoomicon.png"]
 }

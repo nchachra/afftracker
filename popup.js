@@ -45,8 +45,10 @@ var AffiliateTrackerPopup = {
       return "icons/shareasale.com.png";
     } else if(merchant.indexOf("affiliate window") != -1) {
       return "icons/affiliatewindow.png";
-    }  else if (merchant.indexOf("linkshare") != -1) {
+    } else if (merchant.indexOf("linkshare") != -1) {
       return "icons/linkshare.png";
+    } else if (merchant.indexOf ("commission junction") != -1) {
+      return "icons/commissionjunction.png";
     } else if (this.ICONS_AVAILABLE.indexOf(merchant) != -1) {
       return "icons/" + merchant + ".png";
     } else {

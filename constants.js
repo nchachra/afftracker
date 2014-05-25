@@ -73,7 +73,8 @@ AT_CONSTANTS = {
                     "UserPref",
                     "referring_user",
                     "aff_tag",
-                    "MERCHANT" //shareAsale
+                    "MERCHANT", //shareAsale
+                    "LCLK", //  CJ
                    ],
 
 

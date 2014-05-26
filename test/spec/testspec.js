@@ -1,4 +1,4 @@
-describe("AffiliateTracker", function() {
+describe("ExampleSpec", function() {
 
   beforeEach(function() {
 	// TODO: Implement...

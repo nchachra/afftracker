@@ -1,4 +1,5 @@
 Low Pri:
+* Resource interpreted as Image but transferred with MIME type text/html: "http://www.myprotein.com/home.dept?affil=awin&awc=3196_1399708727_9f4ad5e65…9869&utm_source=AWin-128484&utm_medium=affiliate&utm_campaign=AffiliateWin
 * For shareasale, affiliatewindow, show merchant name rather than the code.
 * Switch background to event pages, this is not cool bro
 * Make all merchant icons be the same size.
@@ -16,13 +17,13 @@ Low Pri:
   aref=12026 aref=none aref=794798
  godaddy example:   //?isc=cjcho199a&utm_campaign=affiliates_cj_199hst&utm_source=Commission%20Junction&utm_medium=External%2BAffil&utm_content=cjcho199a&cvosrc=affiliate.cj.PID
 * Try mrooo.com, opener tab id doesn't seem to work well consistently. (seems like it blacklisted me though. oh well.)
+* Pepperjam
 
 
 High Pri:
 * Test suite.
 * Option to delete cookies
-* Affiliate  window
-* Commission Junction
+* The displaying of merchants is broken. Needs a significant refactor in how we store data in local storage. The data collection on the backend is working though.
 
 
 NOTES:

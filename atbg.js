@@ -943,14 +943,14 @@ var ATBg = {
             ATBg.notifyUser(submissionObj["merchant"],
                 submissionObj["origin"]);
           }
-          if (submissionObj.hasOwnProperty("affId") &&
-              response.statusLine.indexOf("200") !== -1) {
-            ATBg.addLandingPageToSubmission(submissionObj, response);
-            ATBg.storeInLocalStorage(submissionObj);
-            ATBg.removeSensitiveInfoFromSubmission(submissionObj);
-          }
         }
       });
+      if (submissionObj.hasOwnProperty("affId") &&
+          response.statusLine.indexOf("200") !== -1) {
+        ATBg.addLandingPageToSubmission(submissionObj, response);
+        ATBg.storeInLocalStorage(submissionObj);
+        ATBg.removeSensitiveInfoFromSubmission(submissionObj);
+      }
     }
   },
 

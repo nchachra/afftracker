@@ -35,17 +35,17 @@ var RequestHandlerCS = {
         var iframeInfo = null;
         if (window !== window.top) {
           // It is contained in an iframe.
-          var parentFrame = window.frameElement;
-          iframeInfo = {    "clientHeight": parentFrame.clientHeight,
-                            "clientWidth": parentFrame.clientWidth,
-                            "height": parentFrame.height,
-                            "width": parentFrame.width,
-                            "hidden": parentFrame.hidden,
-                            "innerHTML": parentFrame.innerHTML,
-                            "tagName": parentFrame.tagName,
-                            "outerHTML": parentFrame.outerHTML,
-                            "src": parentFrame.src,
-                            };
+          iframeInfo = {
+            "clientHeight": window.clientHeight,
+                           "clientWidth": window.clientWidth,
+                           "height": window.height,
+                           "width": window.width,
+                           "hidden": window.hidden,
+                           "innerHTML": window.innerHTML,
+                           "tagName": window.tagName,
+                           "outerHTML": window.outerHTML,
+                           "src": window.src,
+          };
         }
         var elProperties = {"height": el.height,
                             "width": el.width,

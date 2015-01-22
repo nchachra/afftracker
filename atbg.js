@@ -875,17 +875,12 @@ var ATBg = {
    */
   responseCallback: function(response) {
     var submissionObj = ATBg.getProbableSubmission(response.requestId);
+
     if (submissionObj) {
       ATBg.updateReqRespSeq(submissionObj, response);
       var setCookieHeaders = response.responseHeaders.filter(function(header) {
         return header.name.toLowerCase() == "set-cookie";
       });
-      if (submissionObj.hasOwnProperty("affId") &&
-          response.statusLine.indexOf("200") != -1) {
-        ATBg.addLandingPageToSubmission(submissionObj, response);
-        ATBg.storeInLocalStorage(submissionObj);
-        ATBg.removeSensitiveInfoFromSubmission(submissionObj);
-      }
 
       setCookieHeaders.forEach(function(header) {
         if (ATBg.cookieAffRe.test(header.value) &&
@@ -948,6 +943,12 @@ var ATBg = {
             ATBg.notifyUser(submissionObj["merchant"],
                 submissionObj["origin"]);
           }
+          if (submissionObj.hasOwnProperty("affId") &&
+              response.statusLine.indexOf("200") !== -1) {
+            ATBg.addLandingPageToSubmission(submissionObj, response);
+            ATBg.storeInLocalStorage(submissionObj);
+            ATBg.removeSensitiveInfoFromSubmission(submissionObj);
+          }
         }
       });
     }
@@ -976,17 +977,19 @@ var ATBg = {
       // Origin is the page that requested merchant URL for affiliate.
       // Landing is the page that the user saw in the end.
       // newTab determines whether the mechant URL was requested in new tab.
-      if (request.tabId >= 0) {
+      if (request.tabId >= 0 && !chrome.runtime.lastError) {
         chrome.tabs.get(request.tabId, function(tab) {
-          if (typeof tab != "undefined") {
+          if (typeof tab !== "undefined" && tab !== null) {
             submissionObj["origin"] = tab.url;
             submissionObj["culpritReqUrl"] = request.url;
             submissionObj["type"] = request.type;
             if (tab.hasOwnProperty("openerTabId") &&
-                typeof tab.openerTabId != "undefined") {
+                typeof tab.openerTabId !== "undefined") {
               chrome.tabs.get(tab.openerTabId, function(openerTab) {
-                submissionObj["origin"] = openerTab.url;
-                submissionObj["newTab"] = true;
+                if (openerTab !== null) {
+                  submissionObj["origin"] = openerTab.url;
+                  submissionObj["newTab"] = true;
+                }
               });
             } else {
               submissionObj["newTab"] = false;
@@ -997,11 +1000,12 @@ var ATBg = {
       submissionObj["reqLifeTimer"] = setTimeout(function() {
         if (ATBg.probableSubmissions.hasOwnProperty(
           request.requestId)) {
-          // Delete this object reference either way
+          // Delete this object reference.
           delete ATBg.probableSubmissions[request.requestId];
         }
-      }, 30000);
-      // We use this to find DOM content later.
+      }, 10000);
+      // We use this to find DOM content later. If tabId is -1, the request is
+      // not related to a tab.
       submissionObj["tabId"] = request.tabId;
       ATBg.probableSubmissions[request.requestId] = submissionObj;
     }
@@ -1016,7 +1020,3 @@ var ATBg = {
     }
   },
 };
-
-
-
-

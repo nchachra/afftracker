@@ -147,6 +147,7 @@ var RequestHandlerCS = {
     icon.src =  chrome.extension.getURL("icons/zoomicon.png");
     icon.style.width = "20px";
     icon.style.height = "20px";
+    icon.style.visibility = "visible";
     return icon;
   },
 }

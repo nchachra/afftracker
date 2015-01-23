@@ -3,7 +3,7 @@
 
   "name": "AffiliateTracker",
   "description": "Track affiliates earning commission on your next purchase",
-  "version": "2.6.7",
+  "version": "2.6.8",
 
   "browser_action": {
     "default_icon": "icon.png",
@@ -12,7 +12,7 @@
   },
 
   "background": {
-    "scripts": ["md5.js", "enc-base64-min.js", "constants.js", "utils.js", "parseutils.js", "atbg.js", "initbg.js"],
+    "scripts": ["md5.js", "enc-base64-min.js", "constants.js", "utils.js", "parseutils.js", "atbg.js", "submission.js", "initbg.js"],
     "persistent": true
   },
 

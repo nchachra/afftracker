@@ -45,30 +45,9 @@ var ATBg = {
 
 
   /**
-   * Initializes the extension. Specifically,
-   * 1) If a user does not have a unique identifier, it creates one.
-   * 2) Initializes and parses the existing cookies to display in the popup.
-   * 3) Sends a list of currently installed extensions to the server. We track
-   *    these because extensions like adblocker affect affiliate cookies.
-   *
-   * @public
-   */
-  init: function() {
-    this.log("Initializing");
-    ATUtils.getUserId().then(function(userId) {
-      console.assert(typeof ATBg.userId === "string",
-        "Generated UserId should be a string.");
-    }, function(error) {
-        console.error("Failed to generate...!", ATBg.userId);
-    });
-    ATBg.processExistingCookies();
-    ATBg.processExistingExtensions();
-  },
-
-
-  /**
    * Sends a list of currently installed extensions to the server. We send
-   * the extension name, id, and description.
+   * the extension name, id, and description. Exclude extensions that Chrome
+   * seems to ship with already.
    */
   processExistingExtensions: function() {
     var pendingExtSubmissions = [];
@@ -76,21 +55,25 @@ var ATBg = {
       extensions.forEach(function (extension, index) {
         // Exclude default extensions.
         if (["Google Docs", "Google Drive", "YouTube", "Google Search",
-            "Gmail", "AffiliateTracker"].indexOf(extension.name) == -1) {
+            "Gmail", "AffiliateTracker",
+            "Chrome Apps & Extensions Developer Tool", "Google Translate",
+            ].indexOf(extension.name) == -1) {
           var ob = {"name": extension.name,
                     "id": extension.id,
                     "description": extension.description,
-                    "userId": ATUtils.getUserId(),
+                    "userId": ATBg.userId,
                     "timestamp": new Date().getTime() / 1000,
-                    "enabled": extension.enabled}
-          if (ATBg.debug)
-            ob["testUser"] = true;
+                    "enabled": extension.enabled,
+          }
           pendingExtSubmissions.push(ob);
         }
       });
       if (pendingExtSubmissions.length > 0) {
-        ATUtils.sendXhr(JSON.stringify(pendingExtSubmissions), "extension");
+        data = JSON.stringify(pendingExtSubmissions);
+        // Effectively clears array:
+        // http://stackoverflow.com/questions/1232040/empty-an-array-in-javascript
         pendingExtSubmissions.length = 0;
+        ATUtils.sendXhr(data, "extension");
       }
     });
   },
@@ -111,7 +94,11 @@ var ATBg = {
             // We identified an affiliate cookie.
             var affId = ATParse.parseAffiliateId(merchant,
               cookie.name + "=" + cookie.value, "COOKIE");
-            ATBg.processExistingAffCookie(affId, merchant, cookie);
+            // Don't bother processing if we can't determine neither merchant
+            // nor affiliate
+            if (affId || merchant) {
+              ATBg.processExistingAffCookie(affId, merchant, cookie);
+            }
           }
         }
       });
@@ -131,24 +118,19 @@ var ATBg = {
    * @private
    */
   processExistingAffCookie: function(affId, merchant, cookie) {
-    var newSubmission = {};
-    ATBg.updateSubmissionObj(newSubmission,  null, affId, null, merchant,
-        cookie);
-    ATBg.storeInLocalStorage(newSubmission);
-    ATBg.removeSensitiveInfoFromSubmission(newSubmission);
-    ATBg.queueForSubmission(newSubmission);
+    var sub = new ATSubmission();
+    sub.setAffiliate(affId);
+    sub.setMerchant(merchant);
+    sub.setCookie(cookie);
+    ATBg.storeInLocalStorage(sub);
+    ATBg.queueForSubmission(sub);
   },
 
 
   /**
-   * Push an object into submission queue.
-   *
    * @param{object} submissionObj Object to be eventually sent to server.
    */
   queueForSubmission: function(submissionObj) {
-    if (ATBg.debug) {
-      submissionObj["testUser"] = true;
-    }
     ATBg.submissionQueue.push(submissionObj);
   },
 
@@ -164,27 +146,15 @@ var ATBg = {
     var storeObj = {};
     var storage_key = AT_CONSTANTS.KEY_ID_PREFIX + submissionObj["merchant"];
     storeObj[storage_key] = {
-                              "affiliate" : submissionObj["affId"],
-                              "cookie": submissionObj["cookieValue"],
-                              "cookieDomain": submissionObj["cookieDomain"],
-                              "origin": submissionObj["origin"]
+                              "affiliate" : submissionObj.affiliate,
+                              "cookie": submissionObj.cookie.value,
+                              "cookieDomain": submissionObj.cookie.domain,
+                              "origin": submissionObj.origin,
                              };
     // We only care about the last cookie value written
-    chrome.storage.sync.set(storeObj, function() {
-      //TODO: error handling?
+   chrome.storage.sync.set(storeObj, function() {
+      //console.log("stored in local storage", storeObj);
     });
-  },
-
-
-  /**
-   * Removes any information deemed sensitive from the submission obj. We had
-   * temporarily stored it to store it persistely locally, but it needs to be
-   * removed from submission object before it is sent to server.
-   *
-   * @param{object} submissionObj  The object to clean.
-   */
-  removeSensitiveInfoFromSubmission: function(submissionObj) {
-    //delete submissionObj["cookieValue"];
   },
 
 
@@ -264,28 +234,8 @@ var ATBg = {
    * @param{object} cookie Optional cookie object.
    */
   updateSubmissionObj: function(submissionObj, cookieHeaderValue, affId,
-      response, merchant, cookie) {
-    if (cookie) {
-      submissionObj["affId"] = affId;
-      submissionObj["cookieDomain"] = cookie.domain;
-      submissionObj["cookieExpDate"] = cookie.expirationDate;
-      submissionObj["cookieHash"] = CryptoJS.MD5(cookie.value).
-          toString(CryptoJS.enc.Hex),
-      submissionObj["cookieName"] = cookie.name;
-      submissionObj["cookiePath"] = cookie.path;
-      submissionObj["landing"] = null;
-      submissionObj["domEls"] = null;
-      submissionObj["merchant"] = merchant;
-      submissionObj["newTab"] = null;
-      submissionObj["origin"] = null;
-      submissionObj["originFrame"] = null;
-      submissionObj["referer"] = null;
-      submissionObj["timestamp"] = new Date().getTime() / 1000;
-      submissionObj["type"] = null;
-      submissionObj["userId"] = ATUtils.getUserId();
-      submissionObj["cookieSrc"] = "store";
-      submissionObj["cookieValue"] = cookie.value;
-    } else if (response && cookieHeaderValue) {
+      response, merchant) {
+    if (response && cookieHeaderValue) {
       // This object will be sent to server and deleted when that happens.
       clearTimeout(submissionObj["reqLifeTimer"]);
       delete submissionObj["reqLifeTimer"];
@@ -316,8 +266,8 @@ var ATBg = {
               cookieHeaderValue.indexOf(';'));
 
       submissionObj["cookieValue"] = cookieVal;
-      submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
-          CryptoJS.enc.Hex);
+      //submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
+      //    CryptoJS.enc.Hex);
       submissionObj["cookieDomain"] = ATParse.
           getCookieParameter(cookieHeaderValue, "domain", response.url);
       submissionObj["cookiePath"] = ATParse.getCookieParameter(
@@ -546,7 +496,6 @@ var ATBg = {
           response.statusLine.indexOf("200") !== -1) {
         ATBg.addLandingPageToSubmission(submissionObj, response);
         ATBg.storeInLocalStorage(submissionObj);
-        ATBg.removeSensitiveInfoFromSubmission(submissionObj);
       }
     }
   },

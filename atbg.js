@@ -6,137 +6,6 @@ var ATBg = {
   debug: false,
 
   /**
-   * Regular expression used for matching visited merchant URLs for merchants
-   * where we have a merchant<->cookieName match.
-   *
-   * @private
-   */
-  UrlRe: RegExp([  /* Amazon sites */
-                  '(amazon\\.(in|com|de|at|ca|cn|fr|it|co\\.jp|es|co\\.uk))',
-                  '|(joyo\\.com)',
-                  '|(amazonsupply\\.com)',
-                  '|(javari\\.(co\\.uk|de|fr|jp))',
-                  '|(buyvip\\.com)',
-
-                  /* Hosting sites*/
-                  '|tracking\\.(hostgator\\.com)', //Hostgator
-                  '|(dreamhost\\.com)\\/redir\\.cgi\\?ad=rewards\\|\\d+',
-                  '|(bluehost\\.com)\\/',
-                  '|(justhost\\.com)\\/',
-                  '|(hostmonster\\.com)\\/',
-                  '|(hosting24\\.com)\\/',
-                  '|(inmotionhosting.com)\\/',
-                  '|(ipage.com)\\/',
-                  '|(fatcow.com)\\/',
-                  '|(webhostinghub.com)\\/',
-                  '|(ixwebhosting.com)\\/',
-                  '|(webhostingpad.com)\\/',
-                  '|(hostrocket.com)\\/',
-                  '|(arvixe.com)\\/',
-                  '|(startlogic.com)\\/',
-                  '|(bizland.com)\\/',
-                  '|(ipower.com)\\/',
-                  '|(lunarpages.com)\\/',
-
-                  /* Travel/Booking sites*/
-                  '|(hotelscombined.com)\\/',
-                  '|brands.(datahc.com)\\/',
-
-                  /* Envato marketplace sites */
-                  '|(themeforest.net)\\/',
-                  '|(codecanyon.net)\\/',
-                  '|(videohive.net)\\/',
-                  '|(audiojungle.net)\\/',
-                  '|(graphicriver.net)\\/',
-                  '|(photodune.net)\\/',
-                  '|(3docean.net.net)\\/',
-                  '|(activeden.net)\\/',
-                  '|(envato.com)\\/',
-
-                  /* Others */
-                  '|(hidemyass.com)\\/',
-
-                  /* Commission Junction */
-                  '|(\\/click-\\d+-\\d+$)',
-                ].join(''), 'i'),
-
-
-  /**
-   * This expression is used to identify affiliate cookies and to extract an
-   * affiliate ID from a cookieName=cookieValue string. Note that groups are
-   * used to extract an affiliate ID and the affiliate ID is the last matched
-   * group in all cases. If this assumption is violated, the use of this
-   * expression must also be altered.
-   *
-   * @private
-   */
-  cookieAffRe: RegExp([
-            // Amazon.cn uses UserPref=-; to indicate no referral.
-            '(UserPref=[^-]+)',
-            //Hostgator. The portion after . is aff id.
-            '|(GatorAffiliate=\\d+\\.(.+))',
-
-            // Bluehostt, justhost, hostmonster have either
-            // Either r=<affId>^<campaignId>^<srcUrl>  or
-            // r=cad^<affId>^<randomString>
-            // The cookies are URL encoded and ^ is %5E.
-            '|(r=cad\\%5E(.+)\\%5E.*)',
-            '|(r=(.*)\\%5E.*\\%5E.*)',
-
-            // Hosting24: Aff=id;
-            // Inmotionhosting: affiliates=id
-            // ixwebhosting.com: IXAFFILIATE=id
-            // Webhostinghub.com: refid=id;
-            '|((aff|affiliate|IXAFFILIATE|refid)=(.*))',
-            // lunarpages.com: lunarsale=id;
-            // hidemyass: aff_tag=id
-            '|((lunarsale|referal|referred_by|aff_tag)=(.*))',
-            // Envato sites: referring_user=id;
-            // Hotelscombined: a_aid=id;
-            '|((referring_user|aff|WHMCSAffiliateID)=(.*))',
-            '|((amember_aff_id|a_aid)=(.*))',
-            //ShareASale
-            '|(MERCHANT=(.*))',
-
-            //ipage.com, fatcow.com, startlogic.com, bizland.com, ipower.com:
-            //AffCookie=things&stuff&AffID&655061&more&stuff
-            '|(AffCookie=.*&AffID&(\\w+)&.*)',
-
-            //dreamhost.com: referred=rewards|id
-            //It is sometimes URL encoded, so | is %7C
-            '|(referred=rewards(\\%7C|\\|)(.*))',
-
-            //idev belongs to the idev affiliate program.
-            //Appears in a few forms
-            //idev=id
-            '|(idev=([^-]*))',
-            // webhostingpad: idev=<affid>----------<urlencodedreferrer>
-            // hostrocket.com: idev=<affid>-<referrer>------<hostrocketURL>
-            // arvixe.com: idev=<affid>-<referrer>-------<arvixeURL>
-            '|(idev=(.*)[-]+.*)',
-
-            // AffiliateWizAffiliateID=AffiliateID=41266&...
-            '|(AffiliateWizAffiliateID=.*=AffiliateID=[^&]+&.*)',
-
-            // AffiliateWindow.
-            // Merchant is represented by digits after aw.
-            // awDIGITS=publisherId|adclickedId|adgroupid|timeofclick|
-            //    referenceaddedbyreferrer|typeofad|idforproduct
-            '|(aw\\d+=(\\d+)\\|.*)',
-
-            // LinkShare.
-            // Merchant is represented by digits followed by lsclick_mid in
-            // the cookie name.
-            // lsclick_midMERCHANTID=TIMESTAMP|AFFID-RANDOMSTRING
-            '|(lsclick_mid\\d+=.*\\|(.*)-.*)',
-
-            // Commission Junction
-            // It does not contain the affiliate ID in the cookie name though.
-            '|(LCLK=.*)',
-        ].join('')),
-
-
-  /**
    * We track all requests as possibly affiliate URL requests. These are
    * indexed by a unique request ID generated by Chrome. Either when we
    * establish this request is not related to an affiliate, or when a
@@ -176,52 +45,6 @@ var ATBg = {
 
 
   /**
-   * Returns user's ID. If one does not already exist, a new user id is
-   * generated and stored in local storage using USER_ID_STORAGE_KEY.
-   *
-   * @public
-   */
-  getUserId: function() {
-    if (!this.userId) {
-      chrome.storage.sync.get(AT_CONSTANTS.USER_ID_STORAGE_KEY,
-          function(result) {
-        if (!result.hasOwnProperty(AT_CONSTANTS.USER_ID_STORAGE_KEY)) {
-          ATBg.userId = ATBg.generateUserId();
-          var storage_key = AT_CONSTANTS.USER_ID_STORAGE_KEY;
-          var storageObj = {
-              storage_key: ATBg.userId
-          };
-          chrome.storage.sync.set(storageObj, function() {
-            //console.log("created user id");
-          });
-        } else {
-          ATBg.userId = result[
-              AT_CONSTANTS.USER_ID_STORAGE_KEY];
-        }
-      });
-    }
-    return this.userId;
-  },
-
-
-  /**
-   * Generate a new identifier for this user. Takes a hash of a random number
-   * concatenated with the timestamp. We only generate a user id if one doesn't
-   * exist already. Don't call this function directly, call getUserId() instead
-   * which calls this if necessary.
-   *
-   * @return {string} Unique identifier
-   * @private
-   */
-  generateUserId: function() {
-    var userId = new String(Math.floor(Math.random()*10+1)) +
-                            new String(new Date().getTime());
-    var storageObj = {};
-    return CryptoJS.MD5(userId).toString(CryptoJS.enc.Hex);
-  },
-
-
-  /**
    * Initializes the extension. Specifically,
    * 1) If a user does not have a unique identifier, it creates one.
    * 2) Initializes and parses the existing cookies to display in the popup.
@@ -232,7 +55,12 @@ var ATBg = {
    */
   init: function() {
     this.log("Initializing");
-    var userId = this.getUserId();
+    ATUtils.getUserId().then(function(userId) {
+      console.assert(typeof ATBg.userId === "string",
+        "Generated UserId should be a string.");
+    }, function(error) {
+        console.error("Failed to generate...!", ATBg.userId);
+    });
     ATBg.processExistingCookies();
     ATBg.processExistingExtensions();
   },
@@ -252,7 +80,7 @@ var ATBg = {
           var ob = {"name": extension.name,
                     "id": extension.id,
                     "description": extension.description,
-                    "userId": ATBg.getUserId(),
+                    "userId": ATUtils.getUserId(),
                     "timestamp": new Date().getTime() / 1000,
                     "enabled": extension.enabled}
           if (ATBg.debug)
@@ -261,43 +89,10 @@ var ATBg = {
         }
       });
       if (pendingExtSubmissions.length > 0) {
-        ATBg.sendXhr(JSON.stringify(pendingExtSubmissions), "extension");
+        ATUtils.sendXhr(JSON.stringify(pendingExtSubmissions), "extension");
         pendingExtSubmissions.length = 0;
       }
     });
-  },
-
-
-  /**
-   * Sends an string to server asynchronously. Picks the URL to upload to
-   * depending on the datatype which is one of "extension" or "cookie".
-   *
-   * @param{string} data JSON encoded string to be sent to server.
-   * @param{string} datatype The kind of data: "extension" or "cookie".
-   */
-  sendXhr: function(data, datatype) {
-    var uploadUrl = null;
-    switch (datatype) {
-      case "extension":
-        uploadUrl = "http://angelic.ucsd.edu:5000/upload-ext-data";
-        break;
-      case "cookie":
-        //ATBg.log(data);
-        uploadUrl = "http://angelic.ucsd.edu:5000/upload-cookie-data";
-        ATBg.log("\n\n");
-        break;
-    }
-    if (!uploadUrl) {
-      ATBg.log("Invalid datatype for sendXhr()");
-      return;
-    }
-    // Send
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", uploadUrl);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    if (!ATBg.debug) {
-      xhr.send(data);
-    }
   },
 
 
@@ -309,101 +104,18 @@ var ATBg = {
   processExistingCookies: function() {
     chrome.cookies.getAll({}, function(cookies) {
       cookies.forEach(function(cookie, index) {
-        if (!cookie.name == "LCLK") {
-          if (ATBg.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
-            var merchant = ATBg.getMerchantFromCookieParams(cookie.domain,
-              cookie.name);
+        if (cookie.name !== "LCLK") {
+          if (AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
+            var merchant = ATParse.getMerchant("Cookie", [cookie.domain,
+              cookie.name]);
             // We identified an affiliate cookie.
-            var affId = null;
-            if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) == -1) {
-              affId = ATBg.parseAffiliateId(merchant,
-                  cookie.name + "=" + cookie.value, "COOKIE");
-            }
+            var affId = ATParse.parseAffiliateId(merchant,
+              cookie.name + "=" + cookie.value, "COOKIE");
             ATBg.processExistingAffCookie(affId, merchant, cookie);
           }
         }
       });
     });
-  },
-
-
-  /**
-   * Returns the merchant name from the cookie. Generally, the cookie domain is
-   * the merchant with the following exceptions:
-   *
-   * ShareASale: the domain is always shareasale.com while the merchant is
-   * identified by a unique number in the cookie name itself.
-   *
-   * AffilaiteWindow: domain is .awin1.com while the merchant code is contained
-   * in the cookie.
-   *
-   * LinkShare: The domain is always .linksynergy.com and the merchant code
-   * is in the cookie name.
-   *
-   * @param{string} cookieDomain The domain of a cookie.
-   * @param{string} cookieName The name of the cookie.
-   * @return{string} Merchant name. Empty string if merchant is not found.
-   *
-   * @public
-   */
-  getMerchantFromCookieParams: function(cookieDomain, cookieName) {
-    var merchant = cookieDomain;
-
-    if (cookieName == "LCLK") {
-      return "commission junction";
-    }
-
-    if (merchant.indexOf('.') == 0) {
-      merchant = merchant.substring(1);
-    }
-    if (merchant.indexOf('www.') == 0) {
-      merchant = merchant.substring(4);
-    }
-    if (([".com", ".net", ".org"].indexOf(merchant.slice(-4)) != -1) &&
-        (merchant.split(".").length == 3)) {
-      merchant = merchant.substring(merchant.indexOf(".") + 1);
-    }
-
-    if (merchant.indexOf("shareasale") != -1 &&
-        cookieName.indexOf("MERCHANT") == 0) {
-      merchant = "shareasale.com (merchant:" + cookieName.substring(8) + ")";
-    } else if (merchant.indexOf("awin1.com") != -1 &&
-        cookieName.indexOf("aw") == 0) {
-      merchant = "affiliate window (merchant:" + cookieName.substring(2) + ")";
-    } else if (merchant.indexOf("linksynergy.com") != -1 &&
-        cookieName.indexOf("lsclick_mid") == 0) {
-      merchant = "linkshare (merchant:" + cookieName.substring(11) + ")";
-    }
-    return merchant;
-  },
-
-
-  /**
-   * In the request-response cycle, we often use the URL for the request
-   * to determine the merchant, which is again represented by the second level
-   * domain name.
-   *
-   * @param{string} url
-   * @return{string} merchant name, "" if not found.
-   */
-  getMerchantFromUrl: function(url) {
-    var merchant = "";
-    if(ATBg.UrlRe.test(url)) {
-      url.match(ATBg.UrlRe).forEach(function(matched, index) {
-        if (index != 0 && typeof matched != "undefined" && merchant == "") {
-          if (matched.indexOf(".") != -1) {
-            merchant = matched;
-          }
-          // Unfortunately CJ publisher isn't a domain name, so it's treated
-          // differently. The merchant ID is the last bit after -
-          if (matched.indexOf('/click-') == 0) {
-            merchant = "commission junction (merchant: " +
-              matched.substring(matched.lastIndexOf('-') + 1) + ")";
-          }
-        }
-      });
-    }
-    return merchant;
   },
 
 
@@ -487,103 +199,9 @@ var ATBg = {
     var len = ATBg.submissionQueue.length;
     if (len > 0) {
       // Frees up memory because we are calling splice.
-      ATBg.sendXhr(JSON.stringify(ATBg.submissionQueue.splice(0, len)),
+      ATUtils.sendXhr(JSON.stringify(ATBg.submissionQueue.splice(0, len)),
           "cookie");
     }
-  },
-
-
-  /**
-   * Parses cookie string to extract a given parameter.
-   *
-   * @param{string} raw cookie string from the header
-   * @param{string} parameter Parameter can be domain, path, or expiration.
-   * @param{string} arg Argument needed to determine a default value.
-   * @return{string} extracted value.
-   *
-   * @private
-   */
-  getCookieParameter: function(cookie, parameter, arg) {
-    var value = "";
-    if (cookie.indexOf(parameter) != -1) {
-      var start = cookie.indexOf(parameter + "=");
-      if (cookie.indexOf(";", start) == -1) {
-        // parameter value is not terminated by ; because it's at the end.
-        value = cookie.substring(start + parameter.length + 1);
-      } else {
-        value = cookie.substring(start + parameter.length + 1,
-                                cookie.indexOf(";", start));
-      }
-    } else {
-      // If not specified, defaults depend on parameter.
-      if (parameter == "domain") {
-        // arg is the url. Default domain is the domain of document.
-        var start = arg.indexOf("//") + 2;
-        value = arg.substring(start, arg.indexOf("/", start));
-      } else if (parameter == "path") {
-        //TODO: what's the path default?
-      }
-    }
-    return value;
-  },
-
-
-  /**
-   * Parses out affiliate ID.
-   *
-   * @param {string} merchant Merchant name in lower case.
-   * @param {string} arg Either a URL or cookie depending on the argType.
-   * @param {string} argType Either "COOKIE" or "URL". Cookie is the value of
-   *  the Set-Cookie header.
-   * @return {string} Affiliate's ID. Returns null if it can't find id.
-   *
-   * @private
-   */
-  parseAffiliateId: function(merchant, arg, argType) {
-    if (argType == "URL") {
-      var url = arg;
-      if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) !== -1) {
-        var args = url.substring(url.lastIndexOf("/") + 1);
-        if (args.indexOf("&") === -1 && args.indexOf("?") === -1) {
-          // When a UserPref cookie is received in these cases, the affiliate
-          // parameter is the last bit after the /
-          return args;
-        }
-        if (args.indexOf("tag=") != -1) {
-          var tagIndex = args.indexOf("tag=");
-          args = args.substring(tagIndex + 4);
-          if (args.indexOf("&") != -1) {
-            return args.substring(0, args.indexOf("&"));
-          } else {
-            return args;
-          }
-        };
-      } else {
-        // The only other merchant we have these URLs is for Commission
-        // Junction where the url structure is domain/click-PID-AID
-        lastSlash = url.indexOf('/click-');
-        if (lastSlash == -1) {
-          // Probably an encrypted affiliate URL. We're hosed.
-          return null;
-        }
-        return url.substring(lastSlash).split("-")[1];
-      }
-    } else if (argType == "COOKIE") {
-        var substringEnd = arg.indexOf(";") != -1 ? arg.indexOf(";") :
-            arg.length;
-        var cookieNameValue = arg.substring(0, substringEnd);
-        var affId = null;
-        if(ATBg.cookieAffRe.test(cookieNameValue)) {
-          cookieNameValue.match(ATBg.cookieAffRe).
-              forEach(function(matched, index) {
-            if (index != 0 && typeof matched != "undefined"
-                && matched != null) {
-              affId = matched;
-            }
-          });
-        }
-        return affId;
-      }
   },
 
 
@@ -664,7 +282,7 @@ var ATBg = {
       submissionObj["referer"] = null;
       submissionObj["timestamp"] = new Date().getTime() / 1000;
       submissionObj["type"] = null;
-      submissionObj["userId"] = ATBg.getUserId();
+      submissionObj["userId"] = ATUtils.getUserId();
       submissionObj["cookieSrc"] = "store";
       submissionObj["cookieValue"] = cookie.value;
     } else if (response && cookieHeaderValue) {
@@ -700,20 +318,20 @@ var ATBg = {
       submissionObj["cookieValue"] = cookieVal;
       submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
           CryptoJS.enc.Hex);
-      submissionObj["cookieDomain"] = ATBg.
+      submissionObj["cookieDomain"] = ATParse.
           getCookieParameter(cookieHeaderValue, "domain", response.url);
-      submissionObj["cookiePath"] = ATBg.getCookieParameter(
+      submissionObj["cookiePath"] = ATParse.getCookieParameter(
           cookieHeaderValue, "path", response.url);
-      submissionObj["cookieExpDate"] = ATBg.
+      submissionObj["cookieExpDate"] = ATParse.
           getCookieParameter(cookieHeaderValue, "expires", "");
-      submissionObj["userId"] = ATBg.getUserId();
+      submissionObj["userId"] = ATUtils.getUserId();
       submissionObj["affId"] = affId;
       submissionObj["timestamp"] = response.timeStamp;
       submissionObj["cookieSrc"] = "traffic";
       submissionObj["cookieUrl"] = response.url;
       if (merchant == "") {
-        merchant = ATBg.getMerchantFromCookieParams(
-            submissionObj["cookieDomain"], submissionObj["cookieName"]);
+        merchant = ATUtils.getMerchant("Cookie",
+            [submissionObj["cookieDomain"], submissionObj["cookieName"]]);
       }
       submissionObj["merchant"] = merchant;
       // Every submission object which will be subsequently submitted has
@@ -822,27 +440,6 @@ var ATBg = {
 
 
   /**
-   * Finds the URL that matches the CJ pattern with publisher id and
-   * affiliate id in the request response sequence. This will later
-   * be used to pull out the merchant and affiliate id.
-   *
-   * @param{object} reqRespObj It's the list of request and response so far.
-   * @return{string} the url matching CJ pattern.
-   */
-  findCJUrl: function(reqRespSeq) {
-    var re = RegExp('\\/click-\\d+-\\d+$');
-    var matches = reqRespSeq.filter(function(reqObj) {
-                return re.test(reqObj.url);
-              });
-    if (matches.length > 0) {
-      return matches[0].url;
-    } else {
-      return null;
-    }
-  },
-
-
-  /**
    * When a tab completes loading, we check if the corresponding submission
    * object is still around and does not have the DOM data in it already.
    * If so, we query data for the DOM element with affiliate URL, add it
@@ -883,7 +480,7 @@ var ATBg = {
       });
 
       setCookieHeaders.forEach(function(header) {
-        if (ATBg.cookieAffRe.test(header.value) &&
+        if (AT_CONSTANTS.cookieAffRe.test(header.value) &&
             // Bluehost 301 redirects from tracking URL to bluehost.com and
             // sends 2 cookies called r. The one set for .bluehost.com is
             // empty. The real cookie is the one set for www.bluehost.com.
@@ -903,9 +500,9 @@ var ATBg = {
             // For CJ, the URL with merchant is actually the penultimate one.
             if (header.value.indexOf("LCLK=") == 0 &&
                 submissionObj.hasOwnProperty("reqRespSeq")) {
-              var cjUrl = ATBg.findCJUrl(submissionObj.reqRespSeq);
+              var cjUrl = ATParse.findCJUrlInReqSeq(submissionObj.reqRespSeq);
               if (cjUrl) {
-                merchant = ATBg.getMerchantFromUrl(cjUrl);
+                merchant = ATParse.getMerchant("URL", [cjUrl]);
               } else {
                 // Some CJ urls are encrypted and we won't get a merchant
                 // for those. Landing page may be used for these. Punting
@@ -913,7 +510,7 @@ var ATBg = {
                 merchant = "commission junction";
               }
             } else {
-              merchant = ATBg.getMerchantFromUrl(response.url);
+              merchant = ATParse.getMerchant("URL", [response.url]);
             }
 
             submissionObj["merchant"] = merchant;
@@ -926,12 +523,12 @@ var ATBg = {
             affId = submissionObj.affId;
           } else {
             if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) != -1) {
-              affId = ATBg.parseAffiliateId(merchant, response.url, "URL");
+              affId = ATParse.parseAffiliateId(merchant, response.url, "URL");
             } else if (header.value.indexOf ("LCLK=") == 0) {
               // Commission Junction
-              affId = ATBg.parseAffiliateId(merchant, cjUrl, "URL");
+              affId = ATParse.parseAffiliateId(merchant, cjUrl, "URL");
             } else {
-              affId = ATBg.parseAffiliateId(merchant, header.value, "COOKIE");
+              affId = ATParse.parseAffiliateId(merchant, header.value, "COOKIE");
             }
             submissionObj["affId"] = affId;
           }
@@ -980,7 +577,6 @@ var ATBg = {
       if (request.tabId >= 0 && !chrome.runtime.lastError) {
         chrome.tabs.get(request.tabId, function(tab) {
           if (typeof tab !== "undefined" && tab !== null) {
-            submissionObj["origin"] = tab.url;
             submissionObj["culpritReqUrl"] = request.url;
             submissionObj["type"] = request.type;
             if (tab.hasOwnProperty("openerTabId") &&
@@ -994,6 +590,7 @@ var ATBg = {
             } else {
               submissionObj["newTab"] = false;
             }
+            submissionObj["origin"] = tab.url;
           }
         });
       }

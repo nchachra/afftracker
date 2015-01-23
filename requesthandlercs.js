@@ -7,14 +7,14 @@ var RequestHandlerCS = {
    * The HTML tags that the Chrome reported Frame Type refers to.
    */
   frameTagMap: {"image": "img",
-                "sub_frame": "iframe"},
+                "sub_frame": "iframe",
+               },
 
 
   /**
    * Returns attributes for the DOM element that corresponds to affiliate
    * URL. Attributes include size and visibility of the element. If the
-   * element has a parent iframe, it includes parameters about it in a
-   * parent field.
+   * element is in an iframe, returns the properties of the iframe as well.
    *
    * @param{object} request The request object with arguments from background
    *    script.
@@ -104,19 +104,25 @@ var RequestHandlerCS = {
           parentFrame.style.visibility = "visible";
           parentFrame.style.position = "absolute";
           parentFrame.style.zIndex = "10000";
+          parentFrame.style.display = "block";
           var parentZoomIcon = RequestHandlerCS.getZoomIconEl(parentFrame);
           parentFrame.className = parentFrame.className + " aff-zoom";
           var parent = parentFrame.parentNode;
           parent.insertBefore(parentZoomIcon, parentFrame);
-          parentFrame.title = "Node type: " + parentFrame.tagName +
-            "; Dimensions: " + parentFrame.width + "X" + parentFrame.height +
-            "; Visibility: " + parentFrame.hidden;
         }
       }
 
       el.className = el.className + " aff-zoom";
       var parent = el.parentNode;
       var zoomIconEl = RequestHandlerCS.getZoomIconEl(el);
+      var infoTitle = "Affiliate Cookie Info: " +
+        " Node type: " + el.tagName +
+        "; Dimensions: " + el.width + "X" + el.height +
+        "; Visibility: " + el.hidden;
+      zoomIconEl.title = infoTitle;
+      zoomIconEl.alt = infoTitle;
+
+
       if (el.width < 10) {
         el.style.width = "10px";
       }
@@ -126,7 +132,13 @@ var RequestHandlerCS = {
       el.style.visibility = "visible";
       el.style.position = "absolute";
       el.style.zIndex = "10000";
+      el.style.display = "block";
+      // TODO: do for all parents.
       parent.insertBefore(zoomIconEl, el);
+      parent.style.visibility = "visible";
+      parent.style.position = "absolute";
+      parent.style.display = "block";
+      parent.style.zIndex = "10000";
       el.title = "Node type: " + el.tagName +
         "; Dimensions: " + el.width + "X" + el.height +
         "; Visibility: " + el.hidden;
@@ -148,6 +160,7 @@ var RequestHandlerCS = {
     icon.style.width = "20px";
     icon.style.height = "20px";
     icon.style.visibility = "visible";
+    icon.style.display = "block";
     return icon;
   },
 }

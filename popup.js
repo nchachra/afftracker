@@ -136,8 +136,8 @@ var AffiliateTrackerPopup = {
       chrome.cookies.getAll({"name": cookieName}, function(cookies) {
         var popup = AffiliateTrackerPopup;
         cookies.forEach(function(cookie, index) {
-          var merchant = bg.ATBg.getMerchantFromCookieParams(cookie.domain,
-              cookie.name);
+          var merchant = bg.ATParse.getMerchant("Cookie", [cookie.domain,
+              cookie.name]);
           if (merchant != "") {
             popup.createRow(tableEl, merchant, cookieName);
           }
@@ -149,8 +149,8 @@ var AffiliateTrackerPopup = {
       chrome.cookies.getAll({"domain": cookieDomain}, function(cookies) {
         var popup = AffiliateTrackerPopup;
         cookies.forEach(function(cookie, index) {
-          var merchant = bg.ATBg.getMerchantFromCookieParams(cookie.domain,
-              cookie.name);
+          var merchant = bg.ATParse.getMerchant("Cookie", [cookie.domain,
+              cookie.name]);
           if (merchant != "") {
             popup.createRow(tableEl, merchant, cookie.name);
           }

@@ -87,4 +87,130 @@ AT_CONSTANTS = {
                          ".linksynergy.com", // LinkSynergy
                         ],
 
+ /**
+   * Regular expression used for matching visited merchant URLs for merchants
+   * where we have a merchant<->cookieName match.
+   */
+  UrlRe: RegExp([  /* Amazon sites */
+                  '(amazon\\.(in|com|de|at|ca|cn|fr|it|co\\.jp|es|co\\.uk))',
+                  '|(joyo\\.com)',
+                  '|(amazonsupply\\.com)',
+                  '|(javari\\.(co\\.uk|de|fr|jp))',
+                  '|(buyvip\\.com)',
+
+                  /* Hosting sites*/
+                  '|tracking\\.(hostgator\\.com)', //Hostgator
+                  '|(dreamhost\\.com)\\/redir\\.cgi\\?ad=rewards\\|\\d+',
+                  '|(bluehost\\.com)\\/',
+                  '|(justhost\\.com)\\/',
+                  '|(hostmonster\\.com)\\/',
+                  '|(hosting24\\.com)\\/',
+                  '|(inmotionhosting.com)\\/',
+                  '|(ipage.com)\\/',
+                  '|(fatcow.com)\\/',
+                  '|(webhostinghub.com)\\/',
+                  '|(ixwebhosting.com)\\/',
+                  '|(webhostingpad.com)\\/',
+                  '|(hostrocket.com)\\/',
+                  '|(arvixe.com)\\/',
+                  '|(startlogic.com)\\/',
+                  '|(bizland.com)\\/',
+                  '|(ipower.com)\\/',
+                  '|(lunarpages.com)\\/',
+
+                  /* Travel/Booking sites*/
+                  '|(hotelscombined.com)\\/',
+                  '|brands.(datahc.com)\\/',
+                  /* Envato marketplace sites */
+                  '|(themeforest.net)\\/',
+                  '|(codecanyon.net)\\/',
+                  '|(videohive.net)\\/',
+                  '|(audiojungle.net)\\/',
+                  '|(graphicriver.net)\\/',
+                  '|(photodune.net)\\/',
+                  '|(3docean.net.net)\\/',
+                  '|(activeden.net)\\/',
+                  '|(envato.com)\\/',
+
+                  /* Others */
+                  '|(hidemyass.com)\\/',
+
+                  /* Commission Junction */
+                  '|(\\/click-\\d+-\\d+$)',
+                ].join(''), 'i'),
+
+  /**
+   * This expression is used to identify affiliate cookies and to extract an
+   * affiliate ID from a cookieName=cookieValue string. Note that groups are
+   * used to extract an affiliate ID and the affiliate ID is the last matched
+   * group in all cases. If this assumption is violated, the use of this
+   * expression must also be altered.
+   */
+  cookieAffRe: RegExp([
+            // Amazon.cn uses UserPref=-; to indicate no referral.
+            '(UserPref=[^-]+)',
+            //Hostgator. The portion after . is aff id.
+            '|(GatorAffiliate=\\d+\\.(.+))',
+
+            // Bluehostt, justhost, hostmonster have either
+            // Either r=<affId>^<campaignId>^<srcUrl>  or
+            // r=cad^<affId>^<randomString>
+            // The cookies are URL encoded and ^ is %5E.
+            '|(r=cad\\%5E(.+)\\%5E.*)',
+            '|(r=(.*)\\%5E.*\\%5E.*)',
+
+            // Hosting24: Aff=id;
+            // Inmotionhosting: affiliates=id
+            // ixwebhosting.com: IXAFFILIATE=id
+            // Webhostinghub.com: refid=id;
+            '|((aff|affiliates|IXAFFILIATE|refid)=(.*))',
+            // lunarpages.com: lunarsale=id;
+            // hidemyass: aff_tag=id
+            '|((lunarsale|aff_tag)=(.*))',
+            //'|((lunarsale|referal|referred_by|aff_tag)=(.*))',
+            // Envato sites: referring_user=id;
+            // Hotelscombined: a_aid=id;
+            '|((referring_user|WHMCSAffiliateID)=(.*))',
+            '|((amember_aff_id|a_aid)=(.*))',
+            //ShareASale
+            '|(MERCHANT=(.*))',
+
+            //ipage.com, fatcow.com, startlogic.com, bizland.com, ipower.com:
+            //AffCookie=things&stuff&AffID&655061&more&stuff
+            '|(AffCookie=.*&AffID&(\\w+)&.*)',
+
+            //dreamhost.com: referred=rewards|id
+            //It is sometimes URL encoded, so | is %7C
+            '|(referred=rewards(\\%7C|\\|)(.*))',
+
+            //idev belongs to the idev affiliate program.
+            //Appears in a few forms
+            //idev=id
+            '|(idev=([^-]*))',
+            // webhostingpad: idev=<affid>----------<urlencodedreferrer>
+            // hostrocket.com: idev=<affid>-<referrer>------<hostrocketURL>
+            // arvixe.com: idev=<affid>-<referrer>-------<arvixeURL>
+            '|(idev=(.*)[-]+.*)',
+
+            // AffiliateWizAffiliateID=AffiliateID=41266&...
+            '|(AffiliateWizAffiliateID=AffiliateID=(\\d+)&.*)',
+
+            // AffiliateWindow.
+            // Merchant is represented by digits after aw.
+            // awDIGITS=publisherId|adclickedId|adgroupid|timeofclick|
+            //    referenceaddedbyreferrer|typeofad|idforproduct
+            '|(aw\\d+=(\\d+)\\|.*)',
+
+            // LinkShare.
+            // Merchant is represented by digits followed by lsclick_mid in
+            // the cookie name.
+            // lsclick_midMERCHANTID=TIMESTAMP|AFFID-RANDOMSTRING
+            // linkshare_cookieMID=AID:MID
+            '|(lsclick_mid\\d+=.*\\|(.*)-.*)',
+            '|(linkshare_cookie\\d+=(\\d+):\\d+)',
+
+            // Commission Junction
+            // It does not contain the affiliate ID in the cookie name though.
+            '|(LCLK=.*)',
+        ].join('')),
 };

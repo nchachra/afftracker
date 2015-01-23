@@ -20,7 +20,7 @@ ATUtils = {
         ATBg.log("\n\n");
         break;
       default:
-        ATBg.log("Invalid datatype for sendXhr()");
+        console.error("Invalid datatype for sendXhr()");
         return;
     }
     // Send

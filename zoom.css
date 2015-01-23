@@ -1,3 +1,5 @@
+/* The element that fradulently dropped a cookie is animated to zoom on hover.
+ */
 .aff-zoom:hover {
   -webkit-transform: scale(5);
   -moz-transform: scale(5);

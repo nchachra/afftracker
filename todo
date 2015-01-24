@@ -15,15 +15,7 @@ Low Pri:
   blogadd=joneslow174
   aff24h=5252696
   aref=12026 aref=none aref=794798
- godaddy example:   //?isc=cjcho199a&utm_campaign=affiliates_cj_199hst&utm_source=Commission%20Junction&utm_medium=External%2BAffil&utm_content=cjcho199a&cvosrc=affiliate.cj.PID
-* Try mrooo.com, opener tab id doesn't seem to work well consistently. (seems like it blacklisted me though. oh well.)
-* Pepperjam
-
-
-High Pri:
-* Test suite.
 * Option to delete cookies
-* The displaying of merchants is broken. Needs a significant refactor in how we store data in local storage. The data collection on the backend is working though.
 
 
 NOTES:
@@ -103,4 +95,3 @@ var cookieMap = { /* Amazon sites */
                   /* Others */
                   "hidemyass.com": "aff_tag",
                  };
-

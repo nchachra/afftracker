@@ -34,6 +34,17 @@ var ATBg = {
 
 
   /**
+   * Tabs where we got an affiliate cookie and want to know the DOM structure.
+   * Contains a mapping of tabId<string>:
+   *                  {"subObjects": [sub1, sub2,...],
+   *                   "autoDestructTimer":timer}
+   *
+   * @private
+   */
+  tabsOfInterest: {},
+
+
+  /**
    * Custom logging. Only logs if debug flag is set.
    *
    * @param{object} msg Message directly passed to console.log.
@@ -119,9 +130,9 @@ var ATBg = {
    */
   processExistingAffCookie: function(affId, merchant, cookie) {
     var sub = new ATSubmission();
-    sub.setAffiliate(affId);
-    sub.setMerchant(merchant);
-    sub.setCookie(cookie);
+    sub.affiliate = affId;
+    sub.merchant = merchant;
+    sub.setCookie(cookie, "object");
     ATBg.storeInLocalStorage(sub);
     ATBg.queueForSubmission(sub);
   },
@@ -176,33 +187,6 @@ var ATBg = {
 
 
   /**
-   * Finds the frame with corresponding URL in the submission object, and
-   * when it figures out the DOM details, it adds the object to the submission
-   * queue.
-   *
-   * @param{object} submissionObj Object to which DOM data should be added.
-   * @param {integer} tabId
-   * @return {object} Object containing parameters like width, height, etc.
-   * @private
-   */
-  addDomDataAndPushToSubmission: function(submissionObj, tabId) {
-    if (["script", "stylesheet", "main_frame"].
-        indexOf(submissionObj["type"]) == -1) {
-      //ATBg.log("trying to get frame properties for " +
-      //    submissionObj["culpritReqUrl"] + " frame: " +
-      //    submissionObj["type"] + " for tab: " + tabId);
-      chrome.tabs.sendMessage(tabId, {"method": "getAffiliateDom",
-          "frameType": submissionObj["type"],
-          "url": submissionObj["culpritReqUrl"]}, function(response) {
-        submissionObj["domEls"] = response;
-      });
-    } else {
-      submissionObj["domEls"] = null;
-    }
-  },
-
-
-  /**
    * Returns the partially initialized submission object corresponding to
    * the request id. Returns null if no such object exists.
    *
@@ -210,7 +194,9 @@ var ATBg = {
    *    objects.
    * @return{object} Submission object if one was found, null otherwise.
    */
-  getProbableSubmission: function(requestId) {
+  getSubmissionForRequest: function(requestId) {
+    console.assert(typeof requestId === "string",
+        "RequestId should be a string.");
     // If this request has gone over 10 seconds, it would have been deleted
     // by a timer.
     if (!ATBg.probableSubmissions.hasOwnProperty(requestId)) {
@@ -220,105 +206,45 @@ var ATBg = {
   },
 
 
+
   /**
-   * Parses and adds values to the submission object. This object is eventually
-   * sent to the server. Either the cookie object needs to be suppied or
-   * the response and cookieHeaderValue. CookieValue is only temporarily
-   * stored in submissionObj because we need it in local storage. It is
-   * removed from submission object before being sent to the server.
+   * Callback for the domTimer timeout that we create once we know we want dom
+   * infomation for a given request cycle. It receives an instance of the
+   * submission object.
    *
-   * @param{object} submissionObj Object to which values should be added.
-   * @param{string} cookieHeaderValue The value of the set-cookie header.
-   * @param{string} affId The parsed out affiliate ID.
-   * @param{object} response Response object, can be null.
-   * @param{object} cookie Optional cookie object.
+   * @param{object} sub Submission object whose timer fired.
    */
-  updateSubmissionObj: function(submissionObj, cookieHeaderValue, affId,
-      response, merchant) {
-    if (response && cookieHeaderValue) {
-      // This object will be sent to server and deleted when that happens.
-      clearTimeout(submissionObj["reqLifeTimer"]);
-      delete submissionObj["reqLifeTimer"];
-
-      submissionObj["sendMonitorInterval"] = setInterval(function(){
-        if (submissionObj.hasOwnProperty("landing") &&
-            submissionObj.hasOwnProperty("domEls") &&
-            submissionObj.hasOwnProperty("origin") &&
-            submissionObj.hasOwnProperty("culpritReqUrl") &&
-            submissionObj.hasOwnProperty("type") &&
-            submissionObj.hasOwnProperty("newTab")) {
-          clearInterval(submissionObj["sendMonitorInterval"]);
-          delete submissionObj["sendMonitorInterval"];
-          ATBg.queueForSubmission(submissionObj);
-          chrome.tabs.sendMessage(submissionObj["tabId"],
-            {"method": "highlightAffiliateDom",
-            "frameType": submissionObj["type"],
-            "url": submissionObj["culpritReqUrl"]}, function(response) {
-          });
-        }
-      }, 1000);
-
-      submissionObj["cookieName"] = cookieHeaderValue.substring(0,
-          cookieHeaderValue.indexOf("="));
-      var cookieVal = (cookieHeaderValue.indexOf(";") == -1) ?
-          cookieHeaderValue.substring(cookieHeaderValue.indexOf("=")) :
-          cookieHeaderValue.substring(cookieHeaderValue.indexOf("=") + 1,
-              cookieHeaderValue.indexOf(';'));
-
-      submissionObj["cookieValue"] = cookieVal;
-      //submissionObj["cookieHash"] = CryptoJS.MD5(cookieVal).toString(
-      //    CryptoJS.enc.Hex);
-      submissionObj["cookieDomain"] = ATParse.
-          getCookieParameter(cookieHeaderValue, "domain", response.url);
-      submissionObj["cookiePath"] = ATParse.getCookieParameter(
-          cookieHeaderValue, "path", response.url);
-      submissionObj["cookieExpDate"] = ATParse.
-          getCookieParameter(cookieHeaderValue, "expires", "");
-      submissionObj["userId"] = ATUtils.getUserId();
-      submissionObj["affId"] = affId;
-      submissionObj["timestamp"] = response.timeStamp;
-      submissionObj["cookieSrc"] = "traffic";
-      submissionObj["cookieUrl"] = response.url;
-      if (merchant == "") {
-        merchant = ATUtils.getMerchant("Cookie",
-            [submissionObj["cookieDomain"], submissionObj["cookieName"]]);
-      }
-      submissionObj["merchant"] = merchant;
-      // Every submission object which will be subsequently submitted has
-      // a timer that flags the object as ready for submission, even if we
-      // never figured out its dom.
-      submissionObj["domTimer"] = setTimeout(function() {
-        //ATBg.log("dom timer fired. Setting dom els to null, deleting timer");
-        submissionObj["domEls"] = null;
-        delete submissionObj["domTimer"];
-      }, 60000);
-
-    }
- },
+  domTimerCallback: function(sub) {
+    ATBg.queueForSubmission(sub);
+  },
 
 
   /**
-   * Adds the landing page to the submission object.
+   * Adds the landing page to the submission object. It's possibe we may error
+   * out and not save landing page (someone closes the tab before we've
+   * recorded information, etc.).
    *
-   * @param{object} submissionObject Submission object to be augmented.
    * @param{object} response The response containing tabId
+   * @returns {promise} landingUrl when resolved, error otherwise.
    */
-  addLandingPageToSubmission: function(submissionObj, response) {
-    chrome.tabs.get(response.tabId, function(tab) {
-      var landing = (typeof tab != "undefined") ? tab.url : null;
-      // Chrome doesn't update the tab url right away, so sometimes we get
-      // the wrong results.
-      if (response.type == "main_frame" &&
-          response.url != landing) {
-        landing = response.url;
+  getLandingPage: function(response) {
+    return new Promise(function(resolve, reject) {
+    if (response.type == "main_frame" && response.url) {
+        resolve(response.url);
+    } else if (response.tabId >= 0 && !chrome.runtime.lastError) {
+        chrome.tabs.get(response.tabId, function(tab) {
+          if (typeof tab !== "undefined") {
+            resolve(tab.url);
+          }
+        });
       }
-      submissionObj["landing"] = landing;
     });
   },
 
 
   /**
-   * Shows a notification to the user.
+   * Shows a notification to the user. We reuse the same notification object
+   * with notificationOpts. It's set to disappear after 2 seconds.
    *
    */
   notifyUser: function(merchant, origin) {
@@ -329,86 +255,162 @@ var ATBg = {
         message: "From " + origin
      }
 
-    chrome.notifications.clear(AT_CONSTANTS.NOTIFICATION_ID, function(){
-      // TODO: error handling?
-     });
+    chrome.notifications.clear(AT_CONSTANTS.NOTIFICATION_ID, function(){});
 
-    chrome.notifications.update(AT_CONSTANTS.NOTIFICATION_ID,
-        notificationOpts, function(wasUpdated) {
+    chrome.notifications.update(AT_CONSTANTS.NOTIFICATION_ID, notificationOpts,
+        function(wasUpdated) {
       if (!wasUpdated) {
         chrome.notifications.create(AT_CONSTANTS.NOTIFICATION_ID,
-            notificationOpts, function() {});
+          notificationOpts, function() {});
       }
     });
     setTimeout(function() {
-      chrome.notifications.clear(AT_CONSTANTS.NOTIFICATION_ID,
-          function() {});
+      chrome.notifications.clear(AT_CONSTANTS.NOTIFICATION_ID, function() {});
     }, 2000);
   },
 
 
   /**
-   * Adds some request/response parameters to the submission object.
-   *
-   * @param{object} submissionObj Object likely to be submitted.
-   * @param{object} webRequest Request or response object.
-   */
-  updateReqRespSeq: function(submissionObj, webRequest) {
-    if (!submissionObj.hasOwnProperty("reqRespSeq")) {
-      submissionObj["reqRespSeq"] = [];
-    }
-    submissionObj.reqRespSeq.push({
-        "method": webRequest.method,
-        "timestamp": webRequest.timestamp,
-        "type": webRequest.type,
-        "url": webRequest.url,
-        "statusLine": (webRequest.hasOwnProperty("statusLine") ?
-                       webRequest.statusLine : null)
-    });
-  },
-
-
-  /**
-   * Submission objects for a given tabId.
-   *
-   * @param{integer} tabId
-   * @return{array} List of submission objects.
-   */
-  getSubmissionObjectsForTabId: function(tabId) {
-    var matchingObjs = [];
-    for (requestId in ATBg.probableSubmissions) {
-      if (ATBg.probableSubmissions.hasOwnProperty(requestId)) {
-        var candidate = ATBg.probableSubmissions[requestId];
-        if (!candidate.hasOwnProperty("domEls") &&
-            candidate.hasOwnProperty("tabId") && candidate.tabId == tabId) {
-            matchingObjs.push(candidate);
-        }
-      }
-    }
-    return matchingObjs;
-  },
-
-
-  /**
-   * When a tab completes loading, we check if the corresponding submission
-   * object is still around and does not have the DOM data in it already.
-   * If so, we query data for the DOM element with affiliate URL, add it
-   * to the submission queue, and clear its DOM request timer.
-   * If no such submission object exists, we ignore the data.
+   * When a tab completes loading, we check to see if this is a tab we were
+   * interested in. If so, we call the callback associated with this tab
+   * completion.
    *
    * @param{string} tabId The id of the tab that finished loading.
    * @param{string} changeInfo The status of the page.
    * @param{object} Tab object.
    */
   tabLoadCallback: function(tabId, changeInfo, tab) {
-    if (changeInfo.status == "complete") {
-      var submissionObjects = ATBg.getSubmissionObjectsForTabId(tabId);
-      submissionObjects.forEach(function(obj) {
-        clearTimeout(obj["domTimer"]);
-        delete obj["domTimer"];
-        ATBg.addDomDataAndPushToSubmission(obj, tab.id);
+    if (changeInfo.status == "complete" &&
+        ATBg.tabsOfInterest.hasOwnProperty(tabId)) {
+      console.log("tabLoadCallback fired for: ", tabId);
+      console.log("Clearing timeout for: ", tabId);
+      clearTimeout(ATBg.tabsOfInterest[tabId].autoDestructTimer);
+      while(sub = ATBg.tabsOfInterest[tabId].subObjects.pop()){
+        console.log("Calling function on sub");
+        sub.addDomDataAndPushToSubmission(tabId);
+      }
+      delete ATBg.tabsOfInterest[tabId];
+    }
+  },
+
+
+  /**
+   * For a given request, creates a partially filled submission object.
+   *
+   * @param{WebRequest} request
+   * @returns {ATSubmission object}
+   */
+  initializeSubmissionForRequest: function(request) {
+    console.assert(request, "Request should be truthy.");
+    var sub = new ATSubmission();
+    sub.culpritReqUrl = request.url;
+    sub.culpritContentType = request.type;
+    sub.tabId = request.tabId;
+    sub.requestId = request.requestId;
+
+    if (request.tabId >= 0 && !chrome.runtime.lastError) {
+      chrome.tabs.get(request.tabId, function(tab) {
+        if (tab) {
+          sub.origin = tab.url;
+          if (tab.hasOwnProperty("openerTabId") && tab.openerTabId) {
+            chrome.tabs.get(tab.openerTabId, function(openerTab) {
+              if (openerTab) {
+                sub.opener = openerTab.url;
+                sub.newTab = true;
+              }
+            });
+          } else {
+            sub.newTab = false;
+          }
+        }
       });
     }
+    return sub;
+  },
+
+
+  /*
+   * We tie a callback to the tab which we want dom elements from. But since
+   * a tab event might never fire (tab closed, crashed, etc.), we associate
+   * a self-destruct timer that removes our interest in a tab. Furthermore,
+   * multiple callbacks may be interested in a tab. We renew the timer in these
+   * cases.
+   *
+   * @param{string} tabId
+   * @param{object} submission object interested in tab.
+   */
+  expressInterestInTab: function(tabId, sub) {
+    console.log("Expressing interest in: ", tabId, sub);
+    var tabTimeoutFunc = function() {
+      console.log("Nothing happened with tab. Deleting");
+      delete ATBg.tabsOfInterest[tabId];
+      console.log("In timer, deleted a thing. tabs of interest: ", ATBg.tabsOfInterest);
+    };
+    //var tabTimeoutDuration = 60000;
+    var tabTimeoutDuration = 15000;
+
+    if (!ATBg.tabsOfInterest.hasOwnProperty(tabId)) {
+      console.log("We are interested in a new tab.");
+      ATBg.tabsOfInterest[tabId] = {
+        "autoDestructTimer": setTimeout(tabTimeoutFunc, tabTimeoutDuration),
+        "subObjects": [sub]
+      };
+      console.log("Tabs of interest: ", ATBg.tabsOfInterest);
+    } else {
+      // Reset timer.
+      console.log("Interested in old tab. Resetting timer on old tab.");
+      clearTimeout(ATBg.tabsOfInterest[tabId].autoDestructTimer);
+      ATBg.tabsOfInterest[tabId].autoDestructTimer = setTimeout(tabTimeoutFunc,
+          tabTimeoutDuration);
+      ATBg.tabsOfInterest[tabId].subObjects.push(sub);
+      console.log("Tabs of interest: ", ATBg.tabsOfInterest);
+    }
+  },
+
+
+  /**
+   * This is unfortunately complicated function just based on the Chrome API.
+   * If we know a tab is already loaded, we return the dom elements. If we
+   * know it's loading, we simply assign a callback for when it's ready to
+   * automatically populate the submission object. If just doesn't exist, we
+   * give up and don't get dom elements -- in this case, the dom timer will
+   * fire and submit the object and delete it.
+   *
+   * @param{string} tabId
+   * @param{object} submission object that will contain dom elements.
+   */
+  getDomElementsFromTab: function(tabId, sub) {
+    console.log("Getting getdom elements for tabId: ", tabId);
+    console.log("corresponding to sub: ", sub);
+    ATUtils.getTabReady(tabId, sub).then(function() {
+      console.log("Tab was already ready.", tab);
+      sub.addDomDataAndPushToSubmission(tabId);
+    }, function(reject) {
+      console.log("tabId in reject: ", tabId);
+      console.log("sub in reject: ", sub);
+      ATBg.expressInterestInTab(tabId, sub);
+    });
+  },
+
+  /**
+   * Intercept every outgoing request to partially initialize a submission
+   * object. We finish processing when we receive a reponse with a cookie. All
+   * submission objects are tracked using the unique request ids Chrome
+   * generates for a single request chain. Eventually the requests that do not
+   * result in affiliate cookies are destroyed after a few seconds
+   * automatically, and the ones that do are submitted to the server.
+   *
+   * @param{Webrequest} request
+   */
+  requestCallback: function(request) {
+    var sub = ATBg.getSubmissionForRequest(request.requestId);
+    if (!sub) {
+      sub = ATBg.initializeSubmissionForRequest(request);
+      //console.log("Partial submission:",  sub);
+      ATBg.probableSubmissions[request.requestId] = sub;
+      sub.setAutoDestructTimer(request.requestId);
+    }
+    sub.updateReqRespSeq(request);
   },
 
 
@@ -421,148 +423,36 @@ var ATBg = {
    * @param{Webrequest} response
    */
   responseCallback: function(response) {
-    var submissionObj = ATBg.getProbableSubmission(response.requestId);
-
-    if (submissionObj) {
-      ATBg.updateReqRespSeq(submissionObj, response);
-      var setCookieHeaders = response.responseHeaders.filter(function(header) {
-        return header.name.toLowerCase() == "set-cookie";
-      });
-
-      setCookieHeaders.forEach(function(header) {
-        if (AT_CONSTANTS.cookieAffRe.test(header.value) &&
-            // Bluehost 301 redirects from tracking URL to bluehost.com and
-            // sends 2 cookies called r. The one set for .bluehost.com is
-            // empty. The real cookie is the one set for www.bluehost.com.
-            !header.value.indexOf("domain=.bluehost.com;") != -1 &&
-            // Some merchants will set the same cookie as affiliate window
-            // with their domains. Ignore those, it's redundant info for us.
-            !(header.value.indexOf("aw") == 0 &&
-              header.value.indexOf("domain=.awin1.com;") == -1)) {
-
-          // Normally we only get a set-cookie once for a merchant, but for
-          // CJ, we go through multiple hops, of which only some of them
-          // yield the affiliate id and merchant id. The most reliable one is
-          // the referrer to the URL that results in the LCLK cookie.
-          var merchant = null;
-          var cjUrl = null;
-          if (!submissionObj.hasOwnProperty("merchant")) {
-            // For CJ, the URL with merchant is actually the penultimate one.
-            if (header.value.indexOf("LCLK=") == 0 &&
-                submissionObj.hasOwnProperty("reqRespSeq")) {
-              var cjUrl = ATParse.findCJUrlInReqSeq(submissionObj.reqRespSeq);
-              if (cjUrl) {
-                merchant = ATParse.getMerchant("URL", [cjUrl]);
-              } else {
-                // Some CJ urls are encrypted and we won't get a merchant
-                // for those. Landing page may be used for these. Punting
-                // in the notification for now.
-                merchant = "commission junction";
-              }
-            } else {
-              merchant = ATParse.getMerchant("URL", [response.url]);
-            }
-
-            submissionObj["merchant"] = merchant;
-          } else {
-            merchant = submissionObj["merchant"];
-          }
-
-          var affId = null;
-          if (submissionObj.hasOwnProperty("affId")) {
-            affId = submissionObj.affId;
-          } else {
-            if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) != -1) {
-              affId = ATParse.parseAffiliateId(merchant, response.url, "URL");
-            } else if (header.value.indexOf ("LCLK=") == 0) {
-              // Commission Junction
-              affId = ATParse.parseAffiliateId(merchant, cjUrl, "URL");
-            } else {
-              affId = ATParse.parseAffiliateId(merchant, header.value, "COOKIE");
-            }
-            submissionObj["affId"] = affId;
-          }
-
-          if (affId) {
-            // yielding the final page, so we aren't ready to submit.
-            ATBg.updateSubmissionObj(submissionObj, header.value, affId,
-                response, merchant);
-            ATBg.notifyUser(submissionObj["merchant"],
-                submissionObj["origin"]);
-          }
-        }
-      });
-      if (submissionObj.hasOwnProperty("affId") &&
-          response.statusLine.indexOf("200") !== -1) {
-        ATBg.addLandingPageToSubmission(submissionObj, response);
-        ATBg.storeInLocalStorage(submissionObj);
-      }
+    var sub = ATBg.getSubmissionForRequest(response.requestId);
+    if (!sub) {
+      console.warn(
+        "We got a response, but the submission object does not exist.");
+      return;
     }
-  },
-
-
-  /**
-   * Intercept every outgoing request to partially initialize a submission
-   * object. We finish processing when we receive a reponse with a cookie. All
-   * submission objects are tracked using the unique request ids Chrome
-   * generates for a single request chain.
-   *
-   * A single request ID may appear multiple times in either request or
-   * response. We store some of the parameters in these cases.
-   *
-   * Lastly, all probably submission objects have an associated timer that
-   * destroys them at the end of 30 seconds if no response with a cookie was
-   * received during this time.
-   *
-   * @param{Webrequest} request
-   */
-  requestCallback: function(request) {
-    var submissionObj = ATBg.getProbableSubmission(request.requestId);
-    if (!submissionObj) {
-      submissionObj = {};
-      // Origin is the page that requested merchant URL for affiliate.
-      // Landing is the page that the user saw in the end.
-      // newTab determines whether the mechant URL was requested in new tab.
-      if (request.tabId >= 0 && !chrome.runtime.lastError) {
-        chrome.tabs.get(request.tabId, function(tab) {
-          if (typeof tab !== "undefined" && tab !== null) {
-            submissionObj["culpritReqUrl"] = request.url;
-            submissionObj["type"] = request.type;
-            if (tab.hasOwnProperty("openerTabId") &&
-                typeof tab.openerTabId !== "undefined") {
-              chrome.tabs.get(tab.openerTabId, function(openerTab) {
-                if (openerTab !== null) {
-                  submissionObj["origin"] = openerTab.url;
-                  submissionObj["newTab"] = true;
-                }
-              });
-            } else {
-              submissionObj["newTab"] = false;
-            }
-            submissionObj["origin"] = tab.url;
-          }
-        });
+    sub.updateReqRespSeq(response);
+    var cookieHeaders = ATUtils.getHeadersForName(response.responseHeaders,
+        "set-cookie");
+    cookieHeaders.forEach(function(header) {
+      if (!ATParse.isUsefulCookie(header.value)) {
+        return;
       }
-      submissionObj["reqLifeTimer"] = setTimeout(function() {
-        if (ATBg.probableSubmissions.hasOwnProperty(
-          request.requestId)) {
-          // Delete this object reference.
-          delete ATBg.probableSubmissions[request.requestId];
-        }
-      }, 10000);
-      // We use this to find DOM content later. If tabId is -1, the request is
-      // not related to a tab.
-      submissionObj["tabId"] = request.tabId;
-      ATBg.probableSubmissions[request.requestId] = submissionObj;
-    }
-    ATBg.updateReqRespSeq(submissionObj, request);
-    // Array.prototype.find does not work, using this instead.
-    // This is redundant, but I keep over-writing to get final referer.
-    var refererHeaders = request.requestHeaders.filter(function(header) {
-      return header.name.toLowerCase() == "referer";
+      sub.setCookie(header.value, "header", [response.url]);
+      if (!sub.merchant) {
+        sub.determineAndSetMerchant(response.url);
+      }
+      if (!sub.affiliate && sub.merchant) {
+        sub.determineAndSetAffiliate(response.url, header.value);
+      }
     });
-    if (refererHeaders.length > 0) {
-      submissionObj["referer"] = refererHeaders[0].value;
+    if (sub.affiliate && response.statusLine.indexOf("200") !== -1) {
+      console.log("Filled up object for submission: ", sub);
+      ATBg.notifyUser(sub.merchant, sub.origin);
+      ATBg.storeInLocalStorage(sub);
+      sub.prolongLife(ATBg.domTimerCallback);
+      ATBg.getLandingPage(response).then(function(landingUrl) {
+        sub.landing = landingUrl;
+      }, function(error) {});
+      ATBg.getDomElementsFromTab(response.tabId, sub);
     }
   },
 };

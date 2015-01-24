@@ -82,4 +82,62 @@ ATUtils = {
         "Created userid should be string");
     return hash;
   },
-};
+
+
+  /**
+   * Filters and returns headers of a particular type.
+   *
+   * @param{object} headers Headers object with name:value pairs.
+   * @param{string} name Name of header to filter on like "set-cookie".
+   */
+  getHeadersForName: function(headers, name) {
+    name = name.toLowerCase();
+    return headers.filter(function(header) {
+      return header.name.toLowerCase() === name;
+    });
+  },
+
+
+  /**
+   * Promise to return tab if it's loaded completely. In rejection return the
+   * tab if it's loading. If there's an error, rejection gets null or
+   * undefined.
+   *
+   * @param{string} tabId
+   * @param{sub} submission object that cares for the tab.
+   * @returns {promise}
+   */
+  getTabReady: function(tabId, sub) {
+    return new Promise(function(resolve, reject) {
+      if (tabId >= 0 && !chrome.runtime.lastError) {
+        chrome.tabs.get(tabId, function(tab) {
+          if (typeof tab !== "undefined" && typeof tab !== null) {
+            if (tab.status === "complete") {
+              resolve(tab);
+            } else {
+              reject();
+            }
+          } else {
+            reject();
+          }
+        });
+      }
+    });
+  },
+
+/**
+ * Promise is to send message to tabid and return response.
+ *
+ * @param{string} tabId Tab to send message to.
+ * @param{object} message Object which forms message.
+ * @returns{promise}
+ */
+  getMessageResponse: function(tabId, message) {
+    return new Promise(function(resolve, reject) {
+      chrome.tabs.sendMessage(tabId, message, function(response) {
+        resolve(response);
+      });
+    });
+  },
+
+}

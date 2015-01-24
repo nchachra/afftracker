@@ -274,49 +274,26 @@ var ATParse = {
 
 
   /**
-   * Returns user's ID. If one does not already exist, a new user id is
-   * generated and stored in local storage using USER_ID_STORAGE_KEY.
+   * If we can either get an affiliate id or merchant name, the cookie is
+   * useful, otherwise return false.
    *
-   * @public
+   * @param{string} header Value of the set-cookie header.
+   * @returns {boolean} Whether or not cookie should be processed further.
    */
-  getUserId: function() {
-    return new Promise(function(resolve, reject) {
-      if (!this.userId) {
-        chrome.storage.sync.get(AT_CONSTANTS.USER_ID_STORAGE_KEY,
-            function(result) {
-          if (!result.hasOwnProperty(AT_CONSTANTS.USER_ID_STORAGE_KEY)) {
-            ATBg.userId = ATUtils.generateUserId();
-            var storage_key = AT_CONSTANTS.USER_ID_STORAGE_KEY;
-            var storageObj = {
-              storage_key: ATBg.userId
-            };
-            chrome.storage.sync.set(storageObj, function() {
-              //console.log("created user id");
-              resolve(ATBg.userId);
-            });
-          } else {
-            ATBg.userId = result[
-                AT_CONSTANTS.USER_ID_STORAGE_KEY];
-            resolve(ATBg.userId);
-          }
-        });
-      }
-    });
-  },
-
-  /**
-   * Generate a new identifier for this user. Takes a hash of a random number
-   * concatenated with the timestamp. We only generate a user id if one doesn't
-   * exist already. Don't call this function directly, call getUserId() instead
-   * which calls this if necessary.
-   *
-   * @return {string} Unique identifier
-   * @private
-   */
-  generateUserId: function() {
-    var userId = new String(Math.floor(Math.random()*10+1)) +
-                            new String(new Date().getTime());
-    var storageObj = {};
-    return CryptoJS.MD5(userId).toString(CryptoJS.enc.Hex);
+  isUsefulCookie: function(header) {
+    console.assert(typeof header === "string",
+        "Header value should be string.");
+    if (AT_CONSTANTS.cookieAffRe.test(header) &&
+        // Bluehost 301 redirects from tracking URL to bluehost.com and
+        // sends 2 cookies called r. The one set for .bluehost.com is
+        // empty. The real cookie is the one set for www.bluehost.com.
+        !header.indexOf("domain=.bluehost.com;") != -1 &&
+        // Some merchants will set the same cookie as affiliate window
+        // with their domains. Ignore those, it's redundant info for us.
+        !(header.indexOf("aw") == 0 &&
+          header.indexOf("domain=.awin1.com;") == -1)) {
+      return true;
+    }
+    return false;
   },
 };

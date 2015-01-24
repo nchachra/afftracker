@@ -287,7 +287,7 @@ var ATParse = {
         // Bluehost 301 redirects from tracking URL to bluehost.com and
         // sends 2 cookies called r. The one set for .bluehost.com is
         // empty. The real cookie is the one set for www.bluehost.com.
-        !header.indexOf("domain=.bluehost.com;") != -1 &&
+        header.indexOf("domain=.bluehost.com;") === -1 &&
         // Some merchants will set the same cookie as affiliate window
         // with their domains. Ignore those, it's redundant info for us.
         !(header.indexOf("aw") == 0 &&

@@ -368,4 +368,45 @@ describe("parseutils.js tests", function () {
   });
 
 
+  //isUsefulCookie
+  it("tests isUsefulCookie()  no match ever", function() {
+    var flag = ATParse.isUsefulCookie("doesntevenlooklikeaheader");
+    expect(flag).toBe(false);
+  });
+
+  it("tests isUsefulCookie()  good match #1", function() {
+    var cookie = "UserPref=7l0bvq92/bbTY0jkZqRYms5WYVIgStO/og//; path=/; " +
+      "domain=.amazon.com; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(true);
+  });
+
+  it("tests isUsefulCookie()  bad match #1", function() {
+    var cookie = "UserPref=7l0bvq92/bbTY0jkZqRYms5WYVIgStO/og//; path=/; " +
+      "domain=.bluehost.com; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(false);
+  });
+
+  it("tests isUsefulCookie()  bad match #2", function() {
+    var cookie = "aw0000=1111|blah; path=/; " +
+      "domain=.bluehost.com; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(false);
+  });
+
+  it("tests isUsefulCookie()  good match #2", function() {
+    var cookie = "aw0000=1111|blah; path=/; " +
+      "domain=.awin1.com; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(true);
+  });
+
+
+
+
+
+
+
+
 });

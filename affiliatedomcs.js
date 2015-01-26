@@ -32,37 +32,55 @@ var AffiliateDomCS = {
       var response = [];
       for (i = 0; i < len; i++) {
         var el = nodeList[i];
-        var iframeInfo = null;
+        var elProperties = AffiliateDomCS.getElementInfo(el, "other");
         if (window !== window.top) {
           // It is contained in an iframe.
-          iframeInfo = {
-            "clientHeight": window.clientHeight,
-                           "clientWidth": window.clientWidth,
-                           "height": window.height,
-                           "width": window.width,
-                           "hidden": window.hidden,
-                           "innerHTML": window.innerHTML,
-                           "tagName": window.tagName,
-                           "outerHTML": window.outerHTML,
-                           "src": window.src,
-          };
-        }
-        var elProperties = {"height": el.height,
-                            "width": el.width,
-                            "naturalWidth": el.naturalWidth,
-                            "naturalHeight": el.naturalHeight,
-                            "title": el.title,
-                            "innerHTML": el.innerHTML,
-                            "outerHTML": el.outerHTML,
-                            "hidden": el.hidden,
-                            "tagName": el.tagName,
-                            "src": el.src};
-        if (iframeInfo) {
-          elProperties["elParentIframe"] = iframeInfo;
+          var iframeInfo = AffiliateDomCS.getElementInfo(window, "frame");
+          if (iframeInfo) {
+            elProperties["elParentIframe"] = iframeInfo;
+          }
         }
         response.push(elProperties);
       }
       return (response.length > 0 ? response : null);
+  },
+
+
+/**
+ * Get information about size and visibility of an element.
+ *
+ * @param{object} el
+ * @param{string} type The type of element, one of {"frame", "other"}
+ *
+ * @returns{object} Information about element, null otherwise.
+ */
+  getElementInfo: function(el, type) {
+    var info = null;
+    switch (type) {
+      case "frame":
+        info = {
+          "clientHeight": el.clientHeight,
+          "clientWidth": el.clientWidth,
+        };
+        break;
+      case "other":
+        info = {
+          "naturalWidth": el.naturalWidth,
+          "naturalHeight": el.naturalHeight,
+          "title": el.title,
+        }
+        break;
+      default:
+        console.error("Type must be specified to get element's information");
+        return info;
+    }
+    info.height = el.height;
+    info.width = el.width;
+    info.hidden = el.hidden;
+    info.tagName = el.tagName;
+    info.innerHTML = el.innerHTML;
+    info.outerHTML = el.outerHTML;
+    return info;
   },
 
 

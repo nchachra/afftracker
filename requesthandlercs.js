@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           sendResponse(response);
         }
     } else if (request.method == "highlightAffiliateDom") {
-      AffiliateDomCS.highlightElement(request);
+      AffiliateDomCS.highlightElements(request);
       sendResponse({});
     } else
       sendResponse({}); // snub them.

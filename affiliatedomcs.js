@@ -108,67 +108,57 @@ var AffiliateDomCS = {
    * @param{request} object The request object that has parameters needed to
    *    find the element to be highlighted.
    */
-  highlightElement: function(request) {
+  highlightElements: function(request) {
     var nodeList = AffiliateDomCS.getMatchingNodelist(request);
     var len = nodeList.length;
     for (i = 0; i < len; i++) {
       var el = nodeList[i];
-      // If it is contained in iframe, highlight it as well. This could
-      // potentially be recursive problem, for now stick to a single level
-      // of depth.
-      if (window != window.top) {
-        var parentFrame = window.frameElement;
-        if (parentFrame.className.indexOf("aff-zoom") == -1) {
-          // We haven't already highlighted this parent.
-          if (parentFrame.height < 100) {
-            parentFrame.height = "100px";
-          }
-          if (parentFrame.width < 100) {
-            parentFrame.width = "100px";
-          }
-          parentFrame.style.visibility = "visible";
-          parentFrame.style.position = "absolute";
-          parentFrame.style.zIndex = "10000";
-          parentFrame.style.display = "block";
-          var parentZoomIcon = AffiliateDomCS.getZoomIconEl(parentFrame);
-          parentFrame.className = parentFrame.className + " aff-zoom";
-          var parent = parentFrame.parentNode;
-          parent.insertBefore(parentZoomIcon, parentFrame);
-        }
-      }
-
-      el.className = el.className + " aff-zoom";
-      var parent = el.parentNode;
-      var zoomIconEl = AffiliateDomCS.getZoomIconEl(el);
-      var infoTitle = "Affiliate Cookie Info: " +
-        " Node type: " + el.tagName +
-        "; Dimensions: " + el.width + "X" + el.height +
-        "; Visibility: " + el.hidden;
-      zoomIconEl.title = infoTitle;
-      zoomIconEl.alt = infoTitle;
-
-
-      if (el.width < 10) {
-        el.style.width = "10px";
-      }
-      if (el.height < 10) {
-        el.style.height = "10px";
-      }
-      el.style.visibility = "visible";
-      el.style.position = "absolute";
-      el.style.zIndex = "10000";
-      el.style.display = "block";
-      // TODO: do for all parents.
-      parent.insertBefore(zoomIconEl, el);
-      parent.style.visibility = "visible";
-      parent.style.position = "absolute";
-      parent.style.display = "block";
-      parent.style.zIndex = "10000";
-      el.title = "Node type: " + el.tagName +
-        "; Dimensions: " + el.width + "X" + el.height +
-        "; Visibility: " + el.hidden;
+      AffiliateDomCS.highlightElement(el, request.frameType);
     }
-    return nodeList;
+  },
+
+  /**
+   * Highlights given element.
+   *
+   * @param{object} el Element
+   * @param{string} type One of {"sub_frame", "image"}
+   */
+  highlightElement: function(el, type) {
+    var info = "Affiliate Cookie Info: " +
+        " Node type: " + el.tagName +
+        "; Dimensions: " + el.width + "," + el.height +
+        "; Visibility: " + el.hidden;
+
+    switch(type) {
+      case "sub_frame":
+        break;
+      case "image":
+        break;
+      default:
+        console.error("Wrong type supplied to highlightELement()");
+        return;
+    }
+    if (el.className.indexOf("aff-zoom") == -1) {
+      // We haven't already highlighted this element
+      var parent = el.parentNode;
+      var newParentDiv = AffiliateDomCS.getNewParentForEl(info);
+      parent.replaceChild(newParentDiv, el);
+      newParentDiv.appendChild(el);
+    }
+  },
+
+  /**
+   * Returns a <div> that contains an icon image tag. The final structure we
+   * want is <div><img><el></div>.
+   *
+   * @param{string} info Caption for the icon image/tooltip etc.
+   */
+  getNewParentForEl: function(info) {
+    var div = document.createElement("div");
+    div.className = "aff-zoom aff-icon"
+    var icon = AffiliateDomCS.getZoomIconEl(info);
+    div.appendChild(icon);
+    return div;
   },
 
 
@@ -179,13 +169,22 @@ var AffiliateDomCS = {
    * @param{object} el DOM element that should be zoomed into on hover.
    * @return{object} Zoom icon image element.
    */
-  getZoomIconEl: function(el) {
+  getZoomIconEl: function(info) {
+    var figure = document.createElement("figure");
+
     var icon = document.createElement('img');
     icon.src =  chrome.extension.getURL("icons/zoomicon.png");
-    icon.style.width = "20px";
-    icon.style.height = "20px";
-    icon.style.visibility = "visible";
-    icon.style.display = "block";
-    return icon;
+    icon.className = "aff-zoom aff-icon";
+    icon.title = info;
+    icon.alt = info;
+
+    var infoNode = document.createTextNode("AffTracker");
+    var figCaption = document.createElement("figcaption");
+    figCaption.appendChild(infoNode);
+    figCaption.className = "figure-caption";
+
+    figure.appendChild(icon);
+    figure.appendChild(figCaption);
+    return figure;
   },
 }

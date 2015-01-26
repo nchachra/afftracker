@@ -20,7 +20,7 @@
     {
       "matches": ["http://*/*"],
       "js": ["affiliatedomcs.js", "requesthandlercs.js", "constants.js"],
-      "css": ["zoom.css"],
+      "css": ["style.css"],
       "all_frames": true
     }
   ],

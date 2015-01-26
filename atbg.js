@@ -383,7 +383,7 @@ var ATBg = {
     console.log("Getting getdom elements for tabId: ", tabId);
     console.log("corresponding to sub: ", sub);
     ATUtils.getTabReady(tabId, sub).then(function() {
-      console.log("Tab was already ready.", tab);
+      console.log("Tab was already ready.", tabId);
       sub.addDomDataAndPushToSubmission(tabId);
     }, function(reject) {
       console.log("tabId in reject: ", tabId);

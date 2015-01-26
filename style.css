@@ -4,7 +4,23 @@
   -webkit-transform: scale(5);
   -moz-transform: scale(5);
   -o-transform: scale(5);
-  transform: scale(5);
+  transform: scale(2);
   transition: all 0.4s;
   -webkit-transition: all 0.4s;
+}
+
+.aff-zoom {
+  visibility: visible;
+  position: absolute;
+  zIndex: 10000;
+  display: block;
+}
+
+.aff-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.figure-caption {
+  font-size: 1px;
 }

@@ -161,10 +161,19 @@ ATSubmission.prototype.setAutoDestructTimer = function(requestId) {
 ATSubmission.prototype.determineAndSetMerchant = function(url) {
   // We do our best to get a merchant id. For CJ, the URL containing
   // the affiliate is generally not the same as one that drops cookie.
-  this.merchant = ATParse.getMerchant("URL", [url]) ||  //amazon
-    ATParse.getMerchant("URL",
-        [ATParse.findCJUrlInReqSeq(this.reqRespSeq) || ""]) || // cj
-    ATParse.getMerchant("Cookie", [this.cookie.domain, this.cookie.name]);
+  if (url !== null && typeof url !== "undefined") {
+    this.merchant = ATParse.getMerchant("URL", [url]);  //amazon
+  }
+  if (!this.merchant) {
+    this.merchant = ATParse.getMerchant("URL",
+        [ATParse.findCJUrlInReqSeq(this.reqRespSeq)]);
+  }
+  if (!this.merchant && this.cookie.hasOwnProperty("domain") &&
+      this.cookie.hasOwnProperty("name") && this.cookie.domain &&
+      this.cookie.name) {
+    this.merchant = ATParse.getMerchant("Cookie", [this.cookie.domain,
+        this.cookie.name]);
+  }
 };
 
 /**
@@ -175,7 +184,8 @@ ATSubmission.prototype.determineAndSetMerchant = function(url) {
  * @param{string} header Set-Cookie header's value.
  */
 ATSubmission.prototype.determineAndSetAffiliate = function(url, header) {
-  if (AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1) {
+  if (this.merchant &&
+      AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1) {
     this.affiliate = ATParse.parseAffiliateId(this.merchant, url, "URL");
   } else if (header.indexOf("LCLK=") == 0) {
     // Commission Junction

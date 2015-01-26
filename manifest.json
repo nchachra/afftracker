@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*"],
-      "js": ["requesthandlercs.js", "constants.js"],
+      "js": ["affiliatedomcs.js", "requesthandlercs.js", "constants.js"],
       "css": ["zoom.css"],
       "all_frames": true
     }

@@ -8,10 +8,9 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.method == "getAffiliateDom") {
         var response = AffiliateDomCS.getAffiliateDom(request);
-        // This check is necessary because every tab has this
-        // content script in it and is listening for this message. Sender
-        // merely identifies an extension, but not the tabId...
-        // TODO: find a way to optimize.
+        // This check is necessary because every content script in every frame
+        // is listening on this request. All but the first response are
+        // ignored. Not sure why it's designed this way..
         if(response) {
           sendResponse(response);
         }

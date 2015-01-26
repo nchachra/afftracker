@@ -346,8 +346,8 @@ var ATBg = {
       delete ATBg.tabsOfInterest[tabId];
       console.log("In timer, deleted a thing. tabs of interest: ", ATBg.tabsOfInterest);
     };
-    //var tabTimeoutDuration = 60000;
-    var tabTimeoutDuration = 15000;
+    var tabTimeoutDuration = 60000;
+    //var tabTimeoutDuration = 15000;
 
     if (!ATBg.tabsOfInterest.hasOwnProperty(tabId)) {
       console.log("We are interested in a new tab.");

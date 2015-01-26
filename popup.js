@@ -2,6 +2,8 @@ var AffiliateTrackerPopup = {
 
   background: chrome.extension.getBackgroundPage(),
 
+  matchedCookies: [],
+
 
   /**
    * We only have icons for a few programs. The best way I found is to just
@@ -119,6 +121,76 @@ var AffiliateTrackerPopup = {
     });
   },
 
+
+  /**
+   * Returns a promise for matching cookies.
+   *
+   * @param{string} property The property of cookie to match. One of
+   *    {domain,name}
+   * @param{string} propertyValue Whatever the name or domain should be.
+   * @returns{cookies} Returns a promise with cookies array.
+   */
+  getCookiesMatchingProperty: function(propertyName, propertyValue) {
+    return new Promise(function(resolve, reject) {
+      switch (propertyName) {
+        case "name":
+          chrome.cookies.getAll({"name": propertyValue}, function(cookies) {
+            resolve(cookies);
+          });
+          break;
+        case "domain":
+          chrome.cookies.getAll({"domain": propertyValue}, function(cookies) {
+            resolve(cookies);
+          });
+          break;
+        default:
+          console.error("Invalid property in getMatchingCookies()");
+          reject();
+      }
+    });
+  },
+
+
+  /**
+   * Get matching cookies to the names and domains. Returns promise
+   */
+  getAllMatchingCookies: function() {
+    return new Promise(function(resolve, reject) {
+      var popup = AffiliateTrackerPopup;
+      bg = popup.background;
+      var promises = [];
+      bg.AT_CONSTANTS.affCookieNames.forEach(function(cookieName, index) {
+        promises.push(popup.getCookiesMatchingProperty("name", cookieName));
+      });
+
+      bg.AT_CONSTANTS.affCookieDomainNames.forEach(function(cookieDomain) {
+        promises.push(popup.getCookiesMatchingProperty("domain", cookieDomain));
+      });
+
+      Promise.all(promises).then(function (cookiesArr) {
+        cookiesArr.forEach(function(matchedCookies) {
+          popup.matchedCookies.push.apply(popup.matchedCookies, matchedCookies);
+        });
+        popup.appendMerchant(popup.matchedCookies);
+        resolve(popup.matchedCookies);
+      });
+    });
+  },
+
+  /**
+   * Adds a merchant field to the cookie objects.
+   *
+   * @param{array} cookies Array of cookies.
+   */
+  appendMerchant: function(cookies) {
+    var bg = this.background;
+    cookies.forEach(function(cookie, index) {
+      cookie["merchant"] = bg.ATParse.getMerchant("Cookie", [cookie.domain,
+            cookie.name]);
+    });
+  },
+
+
   /**
    * Pulls the stored values from storage and populates the DOM.
    *
@@ -127,38 +199,12 @@ var AffiliateTrackerPopup = {
   populateDom: function() {
     var divEl = document.getElementById("merchant-info");
     var tableEl = document.createElement('table');
-    var rowCounter = 0;
-    bg = this.background;
-    var affCookieNames = bg.AT_CONSTANTS.affCookieNames;
-    var affCookieDomainNames = bg.AT_CONSTANTS.affCookieDomainNames;
-
-    affCookieNames.forEach(function(cookieName, index) {
-      chrome.cookies.getAll({"name": cookieName}, function(cookies) {
-        var popup = AffiliateTrackerPopup;
-        cookies.forEach(function(cookie, index) {
-          var merchant = bg.ATParse.getMerchant("Cookie", [cookie.domain,
-              cookie.name]);
-          if (merchant != "") {
-            popup.createRow(tableEl, merchant, cookieName);
-          }
-        });
+    var popup = AffiliateTrackerPopup;
+    popup.getAllMatchingCookies().then(function(cookies) {
+      cookies.forEach(function(cookie) {
+        popup.createRow(tableEl, cookie.merchant, cookie.name);
       });
     });
-
-    affCookieDomainNames.forEach(function(cookieDomain, index) {
-      chrome.cookies.getAll({"domain": cookieDomain}, function(cookies) {
-        var popup = AffiliateTrackerPopup;
-        cookies.forEach(function(cookie, index) {
-          var merchant = bg.ATParse.getMerchant("Cookie", [cookie.domain,
-              cookie.name]);
-          if (merchant != "") {
-            popup.createRow(tableEl, merchant, cookie.name);
-          }
-        });
-      });
-    });
-
-
     divEl.appendChild(tableEl);
   }
 };

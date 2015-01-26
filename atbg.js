@@ -248,6 +248,9 @@ var ATBg = {
    *
    */
   notifyUser: function(merchant, origin) {
+    if (origin === null) {
+      origin = "Probably prefetching";
+    }
     var notificationOpts = {
         type: 'basic',
         iconUrl: 'icon.png',
@@ -447,7 +450,12 @@ var ATBg = {
     if (sub.affiliate && response.statusLine.indexOf("200") !== -1) {
       console.log("Filled up object for submission: ", sub);
       ATBg.notifyUser(sub.merchant, sub.origin);
-      ATBg.storeInLocalStorage(sub);
+      // When Chrome prefetches, it gets the cookie but throws it away. Don't
+      // clobber our data in local storage; but no harm in notifying user
+      // or sending data to server.
+      if (sub.origin !== null) {
+        ATBg.storeInLocalStorage(sub);
+      }
       sub.prolongLife(ATBg.domTimerCallback);
       ATBg.getLandingPage(response).then(function(landingUrl) {
         sub.landing = landingUrl;

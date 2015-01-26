@@ -214,7 +214,9 @@ var ATParse = {
       // is the domain of document.
       if (parameter == "domain" && arg) {
         var start = arg.indexOf("//") + 2;
-        value = arg.substring(start, arg.indexOf("/", start));
+        value = arg.indexOf("/", start) === -1 ?
+          arg.substring(start, arg.length) :
+          arg.substring(start, arg.indexOf("/", start));
       }
     }
     return value;

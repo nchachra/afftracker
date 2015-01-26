@@ -10,6 +10,21 @@ var AffiliateDomCS = {
                 "sub_frame": "iframe",
                },
 
+  /**
+   * Returns nodelist matching the frametype and url in the request.
+   *
+   * @param{object} request
+   * @returns{?object} List of matching nodes, null if the request is bad.
+   */
+  getMatchingNodelist: function(request) {
+    if (!AffiliateDomCS.frameTagMap.hasOwnProperty(request.frameType)) {
+      return null;
+    }
+    return document.querySelectorAll(
+        AffiliateDomCS.frameTagMap[request.frameType] +
+        "[src='" + request.url + "']");
+  },
+
 
   /**
    * Returns attributes for the DOM element that corresponds to affiliate
@@ -22,27 +37,25 @@ var AffiliateDomCS = {
    *    not recognized.
    */
   getAffiliateDom: function(request) {
-      if (!AffiliateDomCS.frameTagMap.hasOwnProperty(request.frameType)) {
-        return null;
-      }
-      var nodeList = document.querySelectorAll(
-          AffiliateDomCS.frameTagMap[request.frameType] +
-          "[src='" + request.url + "']");
-      var len = nodeList.length;
-      var response = [];
-      for (i = 0; i < len; i++) {
-        var el = nodeList[i];
-        var elProperties = AffiliateDomCS.getElementInfo(el, "other");
-        if (window !== window.top) {
-          // It is contained in an iframe.
-          var iframeInfo = AffiliateDomCS.getElementInfo(window, "frame");
-          if (iframeInfo) {
-            elProperties["elParentIframe"] = iframeInfo;
-          }
+    var nodeList = AffiliateDomCS.getMatchingNodelist(request);
+    var len = nodeList.length;
+    var response = [];
+    for (i = 0; i < len; i++) {
+      var el = nodeList[i];
+      var elProperties = AffiliateDomCS.getElementInfo(el,
+          request.frameType);
+      /**
+      if (window !== window.top) {
+        // It is contained in an iframe.
+        var iframeInfo = AffiliateDomCS.getElementInfo(window.frameElement, "frame");
+        if (iframeInfo) {
+          elProperties["elParentIframe"] = iframeInfo;
         }
-        response.push(elProperties);
       }
-      return (response.length > 0 ? response : null);
+      */
+      response.push(elProperties);
+    }
+    return (response.length > 0 ? response : null);
   },
 
 
@@ -50,20 +63,20 @@ var AffiliateDomCS = {
  * Get information about size and visibility of an element.
  *
  * @param{object} el
- * @param{string} type The type of element, one of {"frame", "other"}
+ * @param{string} type The type of element, one of {"sub_frame", "image"}
  *
  * @returns{object} Information about element, null otherwise.
  */
   getElementInfo: function(el, type) {
     var info = null;
     switch (type) {
-      case "frame":
+      case "sub_frame":
         info = {
           "clientHeight": el.clientHeight,
           "clientWidth": el.clientWidth,
         };
         break;
-      case "other":
+      case "image":
         info = {
           "naturalWidth": el.naturalWidth,
           "naturalHeight": el.naturalHeight,
@@ -95,14 +108,8 @@ var AffiliateDomCS = {
    * @param{request} object The request object that has parameters needed to
    *    find the element to be highlighted.
    */
-  // TODO: redundancy and general ugliness. Refactor.
   highlightElement: function(request) {
-    if (!AffiliateDomCS.frameTagMap.hasOwnProperty(request.frameType)) {
-      return null;
-    }
-    var nodeList = document.querySelectorAll(
-      AffiliateDomCS.frameTagMap[request.frameType] +
-      "[src='" + request.url + "']");
+    var nodeList = AffiliateDomCS.getMatchingNodelist(request);
     var len = nodeList.length;
     for (i = 0; i < len; i++) {
       var el = nodeList[i];

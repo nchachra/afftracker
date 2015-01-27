@@ -2,7 +2,6 @@ Low Pri:
 * Resource interpreted as Image but transferred with MIME type text/html: "http://www.myprotein.com/home.dept?affil=awin&awc=3196_1399708727_9f4ad5e65…9869&utm_source=AWin-128484&utm_medium=affiliate&utm_campaign=AffiliateWin
 * For shareasale, affiliatewindow, show merchant name rather than the code.
 * Switch background to event pages, this is not cool bro
-* Make all merchant icons be the same size.
 * Identify failed cookie stuffing events using URL patterns.
 * Convert to Chrome App because curiosity and dead cat.
 * Some URLs of the form .*/?ref=<number> are affiliate URLs
@@ -15,7 +14,6 @@ Low Pri:
   blogadd=joneslow174
   aff24h=5252696
   aref=12026 aref=none aref=794798
-* Option to delete cookies
 
 
 NOTES:

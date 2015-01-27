@@ -157,12 +157,13 @@ var ATBg = {
     var storeObj = {};
     var storage_key = AT_CONSTANTS.KEY_ID_PREFIX + submissionObj["merchant"];
     storeObj[storage_key] = {
-                              "affiliate" : submissionObj.affiliate,
-                              "cookie": submissionObj.cookie.value,
-                              "cookieDomain": submissionObj.cookie.domain,
-                              "origin": submissionObj.origin,
-                             };
-    // We only care about the last cookie value written
+      "affiliate" : submissionObj.affiliate,
+      "cookieValue": submissionObj.cookie.value,
+      "cookieDomain": submissionObj.cookie.domain,
+      "cookieName": submissionObj.cookie.name,
+      "origin": submissionObj.origin,
+    };
+    // We only care about the last cookie value written.
    chrome.storage.sync.set(storeObj, function() {
       //console.log("stored in local storage", storeObj);
     });

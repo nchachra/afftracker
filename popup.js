@@ -1,8 +1,12 @@
-var AffiliateTrackerPopup = {
+var ATPopup = {
 
   background: chrome.extension.getBackgroundPage(),
 
   matchedCookies: [],
+
+  merchantStoreKeys: [],
+
+  displayedCookies: [],
 
 
   /**
@@ -54,70 +58,103 @@ var AffiliateTrackerPopup = {
     } else if (this.ICONS_AVAILABLE.indexOf(merchant) != -1) {
       return "icons/" + merchant + ".png";
     } else {
-      return "icons/unknown.png";
+      return "";
     }
   },
 
 
   /**
-   * Appends a row to table element.
+   * Returns promise for local storage objects that this extension has stored.
+   */
+  getLocalStoreObjects: function() {
+    return new Promise(function(resolve, reject) {
+      chrome.storage.sync.get(ATPopup.merchantStoreKeys, function(objects) {
+        resolve(objects);
+      });
+    });
+  },
+
+
+  /**
+   * Returns a promise with rows.
    *
-   * @param{object} cookie Object
-   * @return{dom} row element
+   * @param{array} cookies Array of cookies
+   * @return{array} array of rows
    *
    * @private
    */
-  createRow: function(cookie) {
-    var row = null;
-    var storeKey = this.background.AT_CONSTANTS.KEY_ID_PREFIX + cookie.merchant;
-    chrome.storage.sync.get(storeKey, function(result) {
-      var storeInfo = result[storeKey];
-      if (typeof storeInfo != "undefined" && storeInfo != null) {
+  createRows: function(cookies) {
+    return new Promise(function(resolve, reject) {
+      var rows = [];
+      ATPopup.getLocalStoreObjects().then(function(objects) {
+        cookies.forEach(function(cookie) {
+          var merchantKey = ATPopup.background.AT_CONSTANTS.KEY_ID_PREFIX +
+            cookie.merchant;
+          if (objects.hasOwnProperty(merchantKey)) {
+            if (cookie.name === objects[merchantKey].cookieName &&
+                cookie.value === objects[merchantKey].cookieValue) {
+              console.log("creating row: ", cookie, objects[merchantKey]);
+              row = ATPopup.createRow(cookie, objects[merchantKey]);
+              console.log("created row: ", row);
+              rows.push(row);
+              ATPopup.displayedCookies.push(cookie);
+            }
+          }
+        });
+        console.log("returning rows", rows);
+        resolve(rows);
+      });
+    });
+  },
+
+
+  /**
+   * creates and returns a single row.
+   * <tr>
+   *   <td>Icon</td>
+   *   <td> Merchant </td>
+   *   <td> Affiliate </td>
+   *   <td> Source </td>
+   *  </tr>
+   */
+  createRow: function(cookie, storageObj) {
+    row = document.createElement('tr');
+
+    var icon = document.createElement("img");
+    icon.className = "program-icon"
+    icon.src = ATPopup.getImgUrl(cookie.merchant);
+    var iconCell = document.createElement('td');
+    iconCell.appendChild(icon);
+    if (icon.src) {
+      row.appendChild(iconCell);
+    }
+
+    var fields = [
+      cookie.merchant || "",
+      storageObj.affiliate || "",
+      storageObj.origin || ""
+    ];
+    fields.forEach(function(field) {
+      var td = document.createElement("td");
+      var text = document.createTextNode(field);
+      td.appendChild(text);
+      row.appendChild(td);
+    });
+    return row;
+
+  /**
         var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
                          "http://www." + storeInfo.cookieDomain :
                          "http://" + storeInfo.cookieDomain;
         chrome.cookies.get({"url": cookieUrl, "name": cookieName},
             function(cookie) {
-          if (storeInfo && cookie && cookie.value == storeInfo.cookie) {
-            // Every table's first cell is the icon img.
-            var iconImg = document.createElement('img');
-            iconImg.src = AffiliateTrackerPopup.getImgUrl(merchant);
-            var iconCell = document.createElement('td');
-            iconCell.appendChild(iconImg);
 
-            row = document.createElement('tr');
-            row.appendChild(iconCell);
             infoCell = document.createElement('td');
-            var affiliateHTML = "affiliate <span style='font-weight:bold;'>" +
-                                storeInfo.affiliate + " </span>";
-
-            if (storeInfo.affiliate == null) {
-              affiliateHTML = "an <span style='font-style:italic;'>" +
-                "Unknown </span> affiliate ";
-            }
-            if (storeInfo.origin != null) {
-              infoCell.innerHTML = "Your visit to " +
-                      "<span style='font-weight:bold;'>" + storeInfo.origin +
-                      "</span> will earn " + affiliateHTML +
-                      " a commission on your " +
-                      "next purchase from <span style='font-weight:bold;'>" +
-                      merchant + "</span>";
-            } else {
-              infoCell.innerHTML = affiliateHTML + " will earn a commission " +
-                      "on your next purchase from " +
-                      "<span style='font-weight:bold;'>" +
-                      merchant + "</span";
-            }
-            row.appendChild(infoCell);
             // Change background color for even numbered rows.
             if (tableEl.rows.length % 2 == 0) {
               row.setAttribute("style", "background-color: #edf0f5;");
             }
-            tableEl.appendChild(row);
-          }
-        });
-      }
-    });
+    */
   },
 
 
@@ -155,7 +192,7 @@ var AffiliateTrackerPopup = {
    */
   getAllMatchingCookies: function() {
     return new Promise(function(resolve, reject) {
-      var popup = AffiliateTrackerPopup;
+      var popup = ATPopup;
       bg = popup.background;
       var promises = [];
       bg.AT_CONSTANTS.affCookieNames.forEach(function(cookieName, index) {
@@ -177,15 +214,20 @@ var AffiliateTrackerPopup = {
   },
 
   /**
-   * Adds a merchant field to the cookie objects.
+   * Adds a merchant field to the cookie objects. Also stores a list of
+   * merchants in an array to quickly query the data the extension has
+   * stored.
    *
    * @param{array} cookies Array of cookies.
    */
   appendMerchant: function(cookies) {
     var bg = this.background;
     cookies.forEach(function(cookie, index) {
-      cookie["merchant"] = bg.ATParse.getMerchant("Cookie", [cookie.domain,
-            cookie.name]);
+      var merchant = bg.ATParse.getMerchant("Cookie", [cookie.domain,
+          cookie.name]);
+      cookie["merchant"] = merchant;
+      ATPopup.merchantStoreKeys.push(
+        ATPopup.background.AT_CONSTANTS.KEY_ID_PREFIX + merchant);
     });
   },
 
@@ -197,18 +239,21 @@ var AffiliateTrackerPopup = {
    */
   populateDom: function() {
     var divEl = document.getElementById("merchant-info");
-    var popup = AffiliateTrackerPopup;
+    var popup = ATPopup;
     popup.getAllMatchingCookies().then(function(cookies) {
       if (cookies.length > 0) {
         var tableEl = popup.createTable();
         divEl.appendChild(tableEl);
-        cookies.forEach(function(cookie) {
-          var row = popup.createRow(cookie);
-          tableEl.children[1].append(row); //append row to tbody
+        popup.createRows(cookies).then(function(rows) {
+          console.log("Got rows: ", rows);
+          rows.forEach(function(row) {
+            tableEl.children[1].appendChild(row);
+          });
         });
-      } else {
-        //TODO: display message saying no cookies!
       }
+      //else {
+        //TODO: display message saying no cookies!
+      //}
     });
   },
 
@@ -233,7 +278,8 @@ var AffiliateTrackerPopup = {
 
     ["", "Merchant", "Affiliate", "Source"].forEach(function(field) {
       var th = document.createElement("th");
-      tr.appendChild(document.createTextNode(field));
+      var textNode = document.createTextNode(field);
+      th.appendChild(textNode);
       tr.appendChild(th);
     });
 
@@ -251,5 +297,5 @@ var AffiliateTrackerPopup = {
 // This should really be done with the event registration API? The alternate
 // to the following.
 document.addEventListener('DOMContentLoaded', function () {
-  AffiliateTrackerPopup.populateDom();
+  ATPopup.populateDom();
 });

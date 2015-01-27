@@ -24,3 +24,19 @@
 .figure-caption {
   font-size: 1px;
 }
+
+body {
+  min-width: 600px;
+  overflow-x: hidden;
+}
+
+.program-icon {
+  border: 1px solid black;
+  vertical-align: middle;
+  height: 30px;
+  width: 59px;
+  margin-left: 25%;
+  margin-right: 25%;
+}
+
+

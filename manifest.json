@@ -20,7 +20,7 @@
     {
       "matches": ["http://*/*"],
       "js": ["js/affiliatedomcs.js", "js/requesthandlercs.js", "js/constants.js"],
-      "css": ["style.css", "css/normalize.css", "css/skeleton.css", "css/fonts.css"],
+      "css": ["css/style.css", "css/normalize.css", "css/skeleton.css", "css/fonts.css"],
       "all_frames": true
     }
   ],

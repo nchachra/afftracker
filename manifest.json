@@ -12,14 +12,14 @@
   },
 
   "background": {
-    "scripts": ["md5.js", "enc-base64-min.js", "constants.js", "utils.js", "parseutils.js", "atbg.js", "submission.js", "initbg.js"],
+    "scripts": ["js/md5.js", "js/enc-base64-min.js", "js/constants.js", "js/utils.js", "js/parseutils.js", "js/atbg.js", "js/submission.js", "js/initbg.js"],
     "persistent": true
   },
 
   "content_scripts": [
     {
       "matches": ["http://*/*"],
-      "js": ["affiliatedomcs.js", "requesthandlercs.js", "constants.js"],
+      "js": ["js/affiliatedomcs.js", "js/requesthandlercs.js", "js/constants.js"],
       "css": ["style.css", "css/normalize.css", "css/skeleton.css", "css/fonts.css"],
       "all_frames": true
     }

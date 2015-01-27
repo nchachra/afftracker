@@ -225,6 +225,13 @@ var ATPopup = {
    */
   populateDom: function() {
     var divEl = document.getElementById("merchant-info");
+    var p = document.createElement('p');
+    p.id = "no-cookie-msg";
+    p.appendChild(document.createTextNode("No delicious affiliate "+ 
+        "cookies found. Browse away!"));
+    divEl.appendChild(p);
+    p.className = "hide";
+
     var popup = ATPopup;
     popup.getAllMatchingCookies().then(function(cookies) {
       if (cookies.length > 0) {
@@ -236,30 +243,47 @@ var ATPopup = {
           });
           if (rows && rows.length) {
             divEl.appendChild(tableEl);
+            divEl.appendChild(ATPopup.getDeleteButton());
           } else {
-            var p = document.createElement('p');
-            p.appendChild(document.createTextNode("No delicious affiliate "+ 
-                "cookies found. Browse away!"));
-            divEl.appendChild(p);
+            p.className = "visible";
           }
         });
       }
     });
   },
 
-  /**
-        var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
-                         "http://www." + storeInfo.cookieDomain :
-                         "http://" + storeInfo.cookieDomain;
-        chrome.cookies.get({"url": cookieUrl, "name": cookieName},
-            function(cookie) {
 
-            infoCell = document.createElement('td');
-            // Change background color for even numbered rows.
-            if (tableEl.rows.length % 2 == 0) {
-              row.setAttribute("style", "background-color: #edf0f5;");
-            }
-    */
+  /**
+   * Returns a button with an onclick attached to delete all visible cookies.
+   */
+  getDeleteButton: function() {
+    var button = document.createElement("button");
+    button.id = "delete-btn";
+    button.className = button.className + " button-primary delete-button";
+    button.appendChild(document.createTextNode("Delete displayed cookies"));
+    button.onclick = ATPopup.deleteDisplayedCookies;
+    return button;
+  },
+
+
+  /**
+   * Deletes the displayed cookies.
+   */
+  deleteDisplayedCookies: function() {
+    ATPopup.displayedCookies.forEach(function(cookie) {
+      var cookieUrl = cookie.domain[0] === "." ?
+        "http://www." + cookie.domain :
+        "http://" + cookie.domain;
+      chrome.cookies.remove({"url": cookieUrl, "name": cookie.name,
+          "storeId": cookie.storeId}, function(deletedCookie) {
+            console.log("deleted cookie: ", cookie); //null when call fails.
+      });
+    });
+    document.getElementById("aff-program-tbl").className = "hide";
+    document.getElementById("delete-btn").className = "hide";
+    document.getElementById("no-cookie-msg").className = "visible";
+  },
+
 
   /**
    * Return table element with header and body elements. Rows will be added
@@ -276,6 +300,7 @@ var ATPopup = {
    */
   createTable: function() {
     var tableEl = document.createElement('table');
+    tableEl.id = "aff-program-tbl";
     var thead = document.createElement("thead");
     var tr = document.createElement("tr");
 

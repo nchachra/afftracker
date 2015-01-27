@@ -44,4 +44,18 @@ p {
   margin-bottom: auto;
 }
 
+.delete-button {
+  float: right;
+  margin-right: 2%;
+  background-color: rgb(4, 190, 4) !important;
+  border-color: #09ab01 !important;
+}
+
+.hide {
+  display: None;
+}
+
+.visible {
+  display: block;
+}
 

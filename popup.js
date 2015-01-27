@@ -141,20 +141,6 @@ var ATPopup = {
       row.appendChild(td);
     });
     return row;
-
-  /**
-        var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
-                         "http://www." + storeInfo.cookieDomain :
-                         "http://" + storeInfo.cookieDomain;
-        chrome.cookies.get({"url": cookieUrl, "name": cookieName},
-            function(cookie) {
-
-            infoCell = document.createElement('td');
-            // Change background color for even numbered rows.
-            if (tableEl.rows.length % 2 == 0) {
-              row.setAttribute("style", "background-color: #edf0f5;");
-            }
-    */
   },
 
 
@@ -243,20 +229,37 @@ var ATPopup = {
     popup.getAllMatchingCookies().then(function(cookies) {
       if (cookies.length > 0) {
         var tableEl = popup.createTable();
-        divEl.appendChild(tableEl);
         popup.createRows(cookies).then(function(rows) {
           console.log("Got rows: ", rows);
           rows.forEach(function(row) {
             tableEl.children[1].appendChild(row);
           });
+          if (rows && rows.length) {
+            divEl.appendChild(tableEl);
+          } else {
+            var p = document.createElement('p');
+            p.appendChild(document.createTextNode("No delicious affiliate "+ 
+                "cookies found. Browse away!"));
+            divEl.appendChild(p);
+          }
         });
       }
-      //else {
-        //TODO: display message saying no cookies!
-      //}
     });
   },
 
+  /**
+        var cookieUrl = (storeInfo.cookieDomain[0] == ".") ?
+                         "http://www." + storeInfo.cookieDomain :
+                         "http://" + storeInfo.cookieDomain;
+        chrome.cookies.get({"url": cookieUrl, "name": cookieName},
+            function(cookie) {
+
+            infoCell = document.createElement('td');
+            // Change background color for even numbered rows.
+            if (tableEl.rows.length % 2 == 0) {
+              row.setAttribute("style", "background-color: #edf0f5;");
+            }
+    */
 
   /**
    * Return table element with header and body elements. Rows will be added

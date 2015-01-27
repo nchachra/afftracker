@@ -62,15 +62,14 @@ var AffiliateTrackerPopup = {
   /**
    * Appends a row to table element.
    *
-   * @param{Object} tableEl Table to which row should be added.
-   * @param{string} merchant The merchant domain name.
-   * @param{string} cookieName Name of the cookie.
+   * @param{object} cookie Object
+   * @return{dom} row element
    *
    * @private
    */
-  createRow: function(tableEl, merchant, cookieName) {
+  createRow: function(cookie) {
     var row = null;
-    var storeKey = this.background.AT_CONSTANTS.KEY_ID_PREFIX + merchant;
+    var storeKey = this.background.AT_CONSTANTS.KEY_ID_PREFIX + cookie.merchant;
     chrome.storage.sync.get(storeKey, function(result) {
       var storeInfo = result[storeKey];
       if (typeof storeInfo != "undefined" && storeInfo != null) {
@@ -198,14 +197,53 @@ var AffiliateTrackerPopup = {
    */
   populateDom: function() {
     var divEl = document.getElementById("merchant-info");
-    var tableEl = document.createElement('table');
     var popup = AffiliateTrackerPopup;
     popup.getAllMatchingCookies().then(function(cookies) {
-      cookies.forEach(function(cookie) {
-        popup.createRow(tableEl, cookie.merchant, cookie.name);
-      });
+      if (cookies.length > 0) {
+        var tableEl = popup.createTable();
+        divEl.appendChild(tableEl);
+        cookies.forEach(function(cookie) {
+          var row = popup.createRow(cookie);
+          tableEl.children[1].append(row); //append row to tbody
+        });
+      } else {
+        //TODO: display message saying no cookies!
+      }
     });
-    divEl.appendChild(tableEl);
+  },
+
+
+  /**
+   * Return table element with header and body elements. Rows will be added
+   * later.
+   * <table>
+   *  <thead>
+   *    <tr>
+   *      <th>
+   *    </tr>
+   *  </thead>
+   *  <tbody>
+   *  </tbody>
+   * </table>
+   */
+  createTable: function() {
+    var tableEl = document.createElement('table');
+    var thead = document.createElement("thead");
+    var tr = document.createElement("tr");
+
+    ["", "Merchant", "Affiliate", "Source"].forEach(function(field) {
+      var th = document.createElement("th");
+      tr.appendChild(document.createTextNode(field));
+      tr.appendChild(th);
+    });
+
+    thead.appendChild(tr);
+    tableEl.appendChild(thead);
+    tableEl.className = "u-full-width";
+
+    tbody = document.createElement("tbody");
+    tableEl.appendChild(tbody);
+    return tableEl;
   }
 };
 

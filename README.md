@@ -30,3 +30,5 @@ affiliatetracker.ucsd.edu. This extension does not gather any Personally
 Identifiable Information (PII) including user's IPs or even the values of
 cookies. The only data collected corresponds to affiliate cookies and the
 associated merchant programs.
+
+Extension URL:  https://chrome.google.com/webstore/detail/affiliatetracker/aifikahpmikjjlaoknlnhnjobdakoppn

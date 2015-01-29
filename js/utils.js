@@ -46,9 +46,9 @@ ATUtils = {
           if (!result.hasOwnProperty(AT_CONSTANTS.USER_ID_STORAGE_KEY)) {
             ATBg.userId = ATUtils.generateUserId();
             var storage_key = AT_CONSTANTS.USER_ID_STORAGE_KEY;
-            var storageObj = {
-              storage_key: ATBg.userId
-            };
+            // Don't create an object = {key: value} where key is a variable.
+            var storageObj = {};
+            storageObj[storage_key] = ATBg.userId;
             chrome.storage.sync.set(storageObj, function() {
               //console.log("created user id");
               resolve(ATBg.userId);

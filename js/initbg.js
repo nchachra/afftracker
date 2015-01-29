@@ -10,6 +10,9 @@ ATInit = {
     * 3) Attaches listeners for monitoring cookies while browsing.
     */
   initialize: function(info) {
+    // info.reason is an enum of {"install", "update"..} etc.
+    // It appears chrome removes all listeners when an extension is updated
+    // so just reattach all of them.
     ATUtils.getUserId().then(function(userId) {
       console.assert(typeof ATBg.userId === "string",
         "Generated UserId should be a string.");

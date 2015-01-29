@@ -12,11 +12,11 @@ ATUtils = {
     var uploadUrl = null;
     switch (datatype) {
       case "extension":
-        uploadUrl = "http://angelic.ucsd.edu:5000/upload-ext-data";
+        uploadUrl = "http://angelic.ucsd.edu:5000/upload-extensions";
         break;
       case "cookie":
         //ATBg.log(data);
-        uploadUrl = "http://angelic.ucsd.edu:5000/upload-cookie-data";
+        uploadUrl = "http://angelic.ucsd.edu:5000/upload-cookies";
         ATBg.log("\n\n");
         break;
       default:

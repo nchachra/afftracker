@@ -49,6 +49,13 @@ function ATSubmission() {
 
   // We save the entire request chain in this array.
   this.reqRespSeq = [];
+
+  // The properties of dom elements.
+  this.domEls = null;
+
+  // Header value that contains the cookie. This is redundant but is good
+  // in case there's a mistake in calculating other parameters.
+  this.cookieHeader = null;
 };
 
 
@@ -86,7 +93,7 @@ ATSubmission.prototype.setCookie = function(cookie, type, args) {
       console.assert(args instanceof Array && args.length === 1 &&
           typeof args[0] === "string",
           "For parsing cookie headers, response url must be provided in args");
-
+      this.cookieHeader = cookie;
       this.cookie.domain = ATParse.getCookieParameter(cookie, "domain",
           args[0]);
       this.cookie.expirationDate = ATParse.getCookieParameter(cookie,

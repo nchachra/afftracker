@@ -16,7 +16,7 @@ AT_CONSTANTS = {
    *
    * @const
    */
-  NOTIFICATION_ID: this.KEY_ID_PREFIX + "notif",
+  NOTIFICATION_ID: "AffiliateTracker_notif",
 
 
   /**
@@ -26,7 +26,7 @@ AT_CONSTANTS = {
    *
    * @const
    */
-  USER_ID_STORAGE_KEY: this.KEY_ID_PREFIX + "userId",
+  USER_ID_STORAGE_KEY: "AffiliateTracker_userId",
 
 
   /**

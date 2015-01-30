@@ -9,7 +9,7 @@ var ATParse = {
    * @return{string} the url matching CJ pattern.
    */
   findCJUrlInReqSeq: function(reqRespSeq) {
-    var re = RegExp('\\/click-\\d+-\\d+$');
+    var re = RegExp('\\/click-\\d+-\\d+(&.*)?$');
     var matches = reqRespSeq.filter(function(reqObj) {
         return re.test(reqObj.url);
     });
@@ -173,9 +173,14 @@ var ATParse = {
           }
           // Unfortunately CJ publisher isn't a domain name, so it's treated
           // differently. The merchant ID is the last bit after -
+          //  Sometimes there is & followed by other parameters.
           if (matched.indexOf('/click-') == 0) {
             merchant = "commission junction (merchant: " +
               matched.substring(matched.lastIndexOf('-') + 1) + ")";
+            if (merchant.indexOf("&") !== -1) {
+              merchant = merchant.substring(0, merchant.indexOf('&'));
+            }
+            merchant += ")"
           }
         }
       });

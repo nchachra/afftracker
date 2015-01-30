@@ -44,15 +44,19 @@ var AffiliateDomCS = {
       var el = nodeList[i];
       var elProperties = AffiliateDomCS.getElementInfo(el,
           request.frameType);
-      /**
       if (window !== window.top) {
-        // It is contained in an iframe.
-        var iframeInfo = AffiliateDomCS.getElementInfo(window.frameElement, "frame");
-        if (iframeInfo) {
-          elProperties["elParentIframe"] = iframeInfo;
+        // #TODO
+        // The resource is in a frame. Let's put the parent's size too. Note
+        // that if the parent frame containing images is hidden, the parent
+        // will not be highlighted. This is because of cross-origin policy. The
+        // best bet is to return this message, and let the background script
+        // send another message to highlight parent frame with the given src url.
+        elProperties["parentFrame"] = {
+          "innerWidth": window.innerWidth,
+          "innerHeight": window.innerHeight,
+          "url": window.location.href,
         }
       }
-      */
       response.push(elProperties);
     }
     return (response.length > 0 ? response : null);

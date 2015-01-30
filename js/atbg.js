@@ -89,30 +89,97 @@ var ATBg = {
     });
   },
 
+  /**
+   * Get matching cookies to the names and domains. Returns promise. The
+   * cookies have new added fields merchant and affiliate in them if we can
+   * determine either of them.
+   */
+  getAllMatchingCookiesWithMerchants: function() {
+    var matchedCookies = [];
+    return new Promise(function(resolve, reject) {
+      var promises = [];
+      AT_CONSTANTS.affCookieNames.forEach(function(cookieName, index) {
+        promises.push(ATBg.getCookiesMatchingProperty("name", cookieName));
+      });
+
+      AT_CONSTANTS.affCookieDomainNames.forEach(function(cookieDomain) {
+        promises.push(ATBg.getCookiesMatchingProperty("domain", cookieDomain));
+      });
+
+      Promise.all(promises).then(function (cookiesArr) {
+        cookiesArr.forEach(function(candidates) {
+          matchedCookies.push.apply(matchedCookies, candidates);
+        });
+        console.log("resolving with: ", matchedCookies);
+        resolve(ATBg.appendMerchantsAndAffiliates(matchedCookies));
+      });
+    });
+  },
+
+  /**
+   * Appends merchant and affiliate fields to cookie if able to determine
+   * either.
+   */
+  appendMerchantsAndAffiliates: function(cookies) {
+    var cookiesWithFields = [];
+    cookies.forEach(function(cookie, index) {
+      if (AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
+        var merchant = ATParse.getMerchant("Cookie", [cookie.domain,
+            cookie.name]);
+        // We identified an affiliate cookie.
+        var affId = ATParse.parseAffiliateId(merchant,
+          cookie.name + "=" + cookie.value, "COOKIE");
+        cookie["merchant"] = merchant ? merchant : null;
+        cookie["affiliate"] = affId ? affId: null;
+        // Don't bother processing if we can't determine neither merchant
+        // nor affiliate
+        if (affId || merchant) {
+          cookiesWithFields.push(cookie);
+        }
+      }
+    });
+    return cookiesWithFields;
+  },
+
 
   /**
    * Looks through all the cookies in the cookie store to find affiliate
-   * cookies. We exclude CJ cookies because we can't determine either
-   * the merchant or the affiliate id from the cookie itself.
+   * cookies. Commission Junction sets multiple cookies per instance, just
+   * FTR.
    */
   processExistingCookies: function() {
-    chrome.cookies.getAll({}, function(cookies) {
+    ATBg.getAllMatchingCookiesWithMerchants().then(function(cookies) {
       cookies.forEach(function(cookie, index) {
-        if (cookie.name !== "LCLK") {
-          if (AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
-            var merchant = ATParse.getMerchant("Cookie", [cookie.domain,
-              cookie.name]);
-            // We identified an affiliate cookie.
-            var affId = ATParse.parseAffiliateId(merchant,
-              cookie.name + "=" + cookie.value, "COOKIE");
-            // Don't bother processing if we can't determine neither merchant
-            // nor affiliate
-            if (affId || merchant) {
-              ATBg.processExistingAffCookie(affId, merchant, cookie);
-            }
-          }
-        }
+        ATBg.processExistingAffCookie(cookie.affiliate, cookie.merchant, cookie);
       });
+    });
+  },
+
+  /**
+   * Returns a promise for matching cookies.
+   *
+   * @param{string} property The property of cookie to match. One of
+   *    {domain,name}
+   * @param{string} propertyValue Whatever the name or domain should be.
+   * @returns{cookies} Returns a promise with cookies array.
+   */
+  getCookiesMatchingProperty: function(propertyName, propertyValue) {
+    return new Promise(function(resolve, reject) {
+      switch (propertyName) {
+        case "name":
+          chrome.cookies.getAll({"name": propertyValue}, function(cookies) {
+            resolve(cookies);
+          });
+          break;
+        case "domain":
+          chrome.cookies.getAll({"domain": propertyValue}, function(cookies) {
+            resolve(cookies);
+          });
+          break;
+        default:
+          console.error("Invalid property in getMatchingCookies()");
+          reject();
+      }
     });
   },
 
@@ -132,9 +199,12 @@ var ATBg = {
     var sub = new ATSubmission();
     sub.affiliate = affId;
     sub.merchant = merchant;
-    sub.setCookie(cookie, "object");
-    ATBg.storeInLocalStorage(sub);
-    ATBg.queueForSubmission(sub);
+    console.log("Wanting to set cookie for: ", sub);
+    sub.setCookie(cookie, "object").then(function() {
+      console.log("Setting cookie for existing cookie: ", sub, cookie);
+      ATBg.storeInLocalStorage(sub);
+      ATBg.queueForSubmission(sub);
+    });
   },
 
 
@@ -440,7 +510,10 @@ var ATBg = {
       if (!ATParse.isUsefulCookie(header.value)) {
         return;
       }
-      sub.setCookie(header.value, "header", [response.url]);
+      sub.setCookie(header.value, "header", [response.url]).then(
+        function() {
+          console.log("Cookie value set for header!");
+        });
       if (!sub.merchant) {
         sub.determineAndSetMerchant(response.url);
       }

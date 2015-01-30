@@ -63,8 +63,8 @@ AT_CONSTANTS = {
                     "a_aid",
                     "affiliate",
                     "AffiliateWizAffiliateID",
-                    "referred_by", /*Ones I have seen were one time referrals.*/
-                    "referal",
+                    //"referred_by", /*Ones I have seen were one time referrals.*/
+                    //"referal",
                     // Most of these are affiliate cookies afaik. But some look
                     // like referers. I'll exclude ones that are obviously URLs.
                     // May need some post-processing cleanup.
@@ -163,7 +163,7 @@ AT_CONSTANTS = {
             // Inmotionhosting: affiliates=id
             // ixwebhosting.com: IXAFFILIATE=id
             // Webhostinghub.com: refid=id;
-            '|((aff|affiliates|IXAFFILIATE|refid)=(.*))',
+            '|((aff|affiliates|affiliate|IXAFFILIATE|refid)=(.*))',
             // lunarpages.com: lunarsale=id;
             // hidemyass: aff_tag=id
             '|((lunarsale|aff_tag)=(.*))',
@@ -212,5 +212,8 @@ AT_CONSTANTS = {
             // Commission Junction
             // It does not contain the affiliate ID in the cookie name though.
             '|(LCLK=.*)',
+
+            // PAPVisitorPro software
+            '|(PAPVisitorId=(.*))',
         ].join('')),
 };

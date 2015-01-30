@@ -2,10 +2,6 @@ var ATPopup = {
 
   background: chrome.extension.getBackgroundPage(),
 
-  matchedCookies: [],
-
-  merchantStoreKeys: [],
-
   displayedCookies: [],
 
 
@@ -68,7 +64,8 @@ var ATPopup = {
    */
   getLocalStoreObjects: function() {
     return new Promise(function(resolve, reject) {
-      chrome.storage.sync.get(ATPopup.merchantStoreKeys, function(objects) {
+      chrome.storage.sync.get(null, function(objects) {
+        console.log("chrome gave me: ", objects);
         resolve(objects);
       });
     });
@@ -86,8 +83,23 @@ var ATPopup = {
   createRows: function(cookies) {
     return new Promise(function(resolve, reject) {
       var rows = [];
+      console.log("in create rows: ", cookies);
       ATPopup.getLocalStoreObjects().then(function(objects) {
+        console.log("local store objects: ", objects);
+        var cj = [];
         cookies.forEach(function(cookie) {
+          // Commission Junction sets multiple cookies with same value. In
+          // these cases, just show one, but keep tabs on the other one too
+          // in case we have to delete it later.
+          if (cookie.name === "LCLK") {
+            console.log("cookie: ", cookie);
+            if (cj.indexOf(cookie.value) === -1) {
+              cj.push(cookie.value);
+            } else {
+              ATPopup.displayedCookies.push(cookie);
+              return;
+            }
+          }
           var merchantKey = ATPopup.background.AT_CONSTANTS.KEY_ID_PREFIX +
             cookie.merchant;
           if (objects.hasOwnProperty(merchantKey)) {
@@ -145,80 +157,6 @@ var ATPopup = {
 
 
   /**
-   * Returns a promise for matching cookies.
-   *
-   * @param{string} property The property of cookie to match. One of
-   *    {domain,name}
-   * @param{string} propertyValue Whatever the name or domain should be.
-   * @returns{cookies} Returns a promise with cookies array.
-   */
-  getCookiesMatchingProperty: function(propertyName, propertyValue) {
-    return new Promise(function(resolve, reject) {
-      switch (propertyName) {
-        case "name":
-          chrome.cookies.getAll({"name": propertyValue}, function(cookies) {
-            resolve(cookies);
-          });
-          break;
-        case "domain":
-          chrome.cookies.getAll({"domain": propertyValue}, function(cookies) {
-            resolve(cookies);
-          });
-          break;
-        default:
-          console.error("Invalid property in getMatchingCookies()");
-          reject();
-      }
-    });
-  },
-
-
-  /**
-   * Get matching cookies to the names and domains. Returns promise
-   */
-  getAllMatchingCookies: function() {
-    return new Promise(function(resolve, reject) {
-      var popup = ATPopup;
-      bg = popup.background;
-      var promises = [];
-      bg.AT_CONSTANTS.affCookieNames.forEach(function(cookieName, index) {
-        promises.push(popup.getCookiesMatchingProperty("name", cookieName));
-      });
-
-      bg.AT_CONSTANTS.affCookieDomainNames.forEach(function(cookieDomain) {
-        promises.push(popup.getCookiesMatchingProperty("domain", cookieDomain));
-      });
-
-      Promise.all(promises).then(function (cookiesArr) {
-        cookiesArr.forEach(function(matchedCookies) {
-          popup.matchedCookies.push.apply(popup.matchedCookies, matchedCookies);
-        });
-        popup.appendMerchant(popup.matchedCookies);
-        resolve(popup.matchedCookies);
-      });
-    });
-  },
-
-  /**
-   * Adds a merchant field to the cookie objects. Also stores a list of
-   * merchants in an array to quickly query the data the extension has
-   * stored.
-   *
-   * @param{array} cookies Array of cookies.
-   */
-  appendMerchant: function(cookies) {
-    var bg = this.background;
-    cookies.forEach(function(cookie, index) {
-      var merchant = bg.ATParse.getMerchant("Cookie", [cookie.domain,
-          cookie.name]);
-      cookie["merchant"] = merchant;
-      ATPopup.merchantStoreKeys.push(
-        ATPopup.background.AT_CONSTANTS.KEY_ID_PREFIX + merchant);
-    });
-  },
-
-
-  /**
    * Pulls the stored values from storage and populates the DOM.
    *
    * @public
@@ -230,10 +168,12 @@ var ATPopup = {
     p.appendChild(document.createTextNode("No delicious affiliate "+ 
         "cookies found. Browse away!"));
     divEl.appendChild(p);
-    p.className = "hide";
+    p.className = "visible";
 
     var popup = ATPopup;
-    popup.getAllMatchingCookies().then(function(cookies) {
+    ATPopup.background.ATBg.getAllMatchingCookiesWithMerchants().then(
+        function(cookies) {
+      console.log("matched cookies: ", cookies);
       if (cookies.length > 0) {
         var tableEl = popup.createTable();
         popup.createRows(cookies).then(function(rows) {
@@ -242,6 +182,7 @@ var ATPopup = {
             tableEl.children[1].appendChild(row);
           });
           if (rows && rows.length) {
+            p.className = "hide";
             divEl.appendChild(tableEl);
             divEl.appendChild(ATPopup.getDeleteButton());
           } else {

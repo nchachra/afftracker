@@ -32,6 +32,19 @@ ATUtils = {
     }
   },
 
+  /**
+   * Returns promise of a cookie corresponding to url and name.
+   */
+  getCookie: function(url, name) {
+    console.assert(typeof url === "string", "URL should be string");
+    console.assert(typeof name === "string", "Cookie name should be string");
+    return new Promise(function(resolve, reject) {
+      chrome.cookies.get({"url": url, "name": name}, function(cookie) {
+        console.log("Resolving get cookie with: ", cookie);
+        resolve(cookie);
+      });
+    });
+  },
 
   /**
    * Returns a resolved promise when a userid is created.

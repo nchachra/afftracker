@@ -72,48 +72,48 @@ function ATSubmission() {
  *    of this array. Only needed if type is "header".
  */
 ATSubmission.prototype.setCookie = function(cookie, type, args) {
-  switch(type) {
-    case "object":
-      this.cookie.domain = cookie.domain;
-      this.cookie.expirationDate = cookie.expirationDate;
-      this.cookie.hostOnly = cookie.hostOnly;
-      this.cookie.httpOnly = cookie.httpOnly;
-      this.cookie.name = cookie.name;
-      this.cookie.path = cookie.path;
-      this.cookie.secure = cookie.secure;
-      this.cookie.session = cookie.session;
-      //this.cookie.storeId = cookie.storeId;
-      this.cookie.value = cookie.value;
-      this.cookieSrc = "store";
-      this.cookieUrl = null;
-      break;
-    case "header":
-      console.assert(cookie.indexOf("=") > 1,
-          "A valid cookie should have name=value;params");
-      console.assert(args instanceof Array && args.length === 1 &&
-          typeof args[0] === "string",
-          "For parsing cookie headers, response url must be provided in args");
-      this.cookieHeader = cookie;
-      this.cookie.domain = ATParse.getCookieParameter(cookie, "domain",
-          args[0]);
-      this.cookie.expirationDate = ATParse.getCookieParameter(cookie,
-          "expires");
-      this.cookie.hostOnly = cookie.indexOf("HostOnly;") !== -1 ? true : false;
-      this.cookie.httpOnly = cookie.indexOf("HttpOnly;") !== -1 ? true : false;
-      this.cookie.name = cookie.substring(0, cookie.indexOf("="));
-      this.cookie.path = ATParse.getCookieParameter(cookie, "path");
-      this.cookie.secure = cookie.indexOf("secure;") !== -1 ? true : false;
-      this.cookie.session = cookie.indexOf("expires=") === -1 ? true : false;
-      console.log("cookie: ", cookie);
-      this.cookie.value = cookie.indexOf(";") == -1 ?
-          cookie.substring(this.cookie.name.length + 1) :
-          cookie.substring(this.cookie.name.length + 1, cookie.indexOf(';'));
-      this.cookieSrc = "traffic";
-      this.cookieUrl = args[0];
-      break;
-    default:
-      console.error("Wrong type supplied to ATSubmission.setCookie()");
-  };
+  var subObj = this;
+  return new Promise(function(resolve, reject) {
+    console.assert(typeof subObj === "object",
+      "sub should be object in promise..");
+    switch(type) {
+      case "object":
+        subObj.cookie.domain = cookie.domain;
+        subObj.cookie.expirationDate = cookie.expirationDate;
+        subObj.cookie.hostOnly = cookie.hostOnly;
+        subObj.cookie.httpOnly = cookie.httpOnly;
+        subObj.cookie.name = cookie.name;
+        subObj.cookie.path = cookie.path;
+        subObj.cookie.secure = cookie.secure;
+        subObj.cookie.session = cookie.session;
+        //this.cookie.storeId = cookie.storeId;
+        subObj.cookie.value = cookie.value;
+        subObj.cookieSrc = "store";
+        subObj.cookieUrl = null;
+        resolve("Resolved");
+        break;
+      case "header":
+        console.assert(cookie.indexOf("=") > 1,
+            "A valid cookie should have name=value;params");
+        console.assert(args instanceof Array && args.length === 1 &&
+            typeof args[0] === "string",
+            "For parsing cookie headers, response url must be provided in args");
+        subObj.cookieHeader = cookie;
+        subObj.cookie.name = cookie.substring(0, cookie.indexOf("="));
+        ATUtils.getCookie(args[0], subObj.cookie.name).then(
+            function(cookie) {
+          subObj.setCookie(cookie, "object");
+          subObj.cookieSrc = "traffic";
+          subObj.cookieUrl = args[0];
+          console.log("Cookie should be set correctly.");
+          resolve("Resolved!");
+        });
+        break;
+      default:
+        console.error("Wrong type supplied to ATSubmission.setCookie()");
+        reject("Wrong type supplied to ATSubmission");
+    }
+  });
 };
 
 
@@ -250,7 +250,6 @@ ATSubmission.prototype.highlightDomEls = function(tabId) {
  */
  ATSubmission.prototype.addDomDataAndPushToSubmission = function(tabId) {
   // clear timers
-  console.log("This should be a submission object: ", this);
   console.log("Clearing dom timers on sub.", this);
   clearTimeout(this.domTimer); // We'll push ourself.
   delete this.domTimer
@@ -267,7 +266,6 @@ ATSubmission.prototype.highlightDomEls = function(tabId) {
       "url": this.culpritReqUrl
       };
   ATUtils.getMessageResponse(tabId, message).then(function(response) {
-    console.log("this should be a sub: ", sub);
     sub.domEls = response;
     console.log("Highlighting now..");
     sub.highlightDomEls(tabId);

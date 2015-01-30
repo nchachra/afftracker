@@ -176,7 +176,7 @@ var ATParse = {
           //  Sometimes there is & followed by other parameters.
           if (matched.indexOf('/click-') == 0) {
             merchant = "commission junction (merchant: " +
-              matched.substring(matched.lastIndexOf('-') + 1) + ")";
+              matched.substring(matched.lastIndexOf('-') + 1);
             if (merchant.indexOf("&") !== -1) {
               merchant = merchant.substring(0, merchant.indexOf('&'));
             }

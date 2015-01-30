@@ -10,35 +10,40 @@ ATInit = {
     * 3) Attaches listeners for monitoring cookies while browsing.
     */
   initialize: function(info) {
+
     // info.reason is an enum of {"install", "update"..} etc.
     // It appears chrome removes all listeners when an extension is updated
     // so just reattach all of them.
-    ATUtils.getUserId().then(function(userId) {
-      console.assert(typeof ATBg.userId === "string",
-        "Generated UserId should be a string.");
-      // Every second, send data to server if there is any.
-      setInterval(ATBg.sendCookiesToServer, 1000);
 
-      ATBg.processExistingCookies();
-      ATBg.processExistingExtensions();
+    // Clean up local storage before proceeding.
+    ATUtils.cleanUpLocalStorage().then(function() {
+      ATUtils.getUserId().then(function(userId) {
+        console.assert(typeof ATBg.userId === "string",
+          "Generated UserId should be a string.");
+        // Every second, send data to server if there is any.
+        setInterval(ATBg.sendCookiesToServer, 1000);
 
-      // We need this event to be able to highlight DOM element and get its
-      // attributes.
-      chrome.tabs.onUpdated.addListener(ATBg.tabLoadCallback);
+        ATBg.processExistingCookies();
+        ATBg.processExistingExtensions();
 
-      chrome.webRequest.onSendHeaders.addListener(
-        ATBg.requestCallback, {urls: ["<all_urls>"]}, ["requestHeaders"]);
-      // There is an inherent assumption that onSendHeaders is fired before
-      //   onHeadersReceived. It would be odd if this assumption is violated.
+        // We need this event to be able to highlight DOM element and get its
+        // attributes.
+        chrome.tabs.onUpdated.addListener(ATBg.tabLoadCallback);
+
+       chrome.webRequest.onSendHeaders.addListener(
+          ATBg.requestCallback, {urls: ["<all_urls>"]}, ["requestHeaders"]);
+       // There is an inherent assumption that onSendHeaders is fired before
+       //   onHeadersReceived. It would be odd if this assumption is violated.
       chrome.webRequest.onHeadersReceived.addListener(
         ATBg.responseCallback, {urls: ["<all_urls>"]}, ["responseHeaders"]);
 
-    }, function(error) {
-      //TODO:
-      //Theoretically the extension can still notify user. Change this once
-      //data collection is not needed for the project. Or at least notify user
-      //to try reset the extension. Otherwise it'll quietly sit forever.
-      console.error("Failed to generate userid!", ATBg.userId);
+      }, function(error) {
+        //TODO:
+        //Theoretically the extension can still notify user. Change this once
+        //data collection is not needed for the project. Or at least notify user
+        //to try reset the extension. Otherwise it'll quietly sit forever.
+        console.error("Failed to generate userid!", ATBg.userId);
+      });
     });
   },
 }

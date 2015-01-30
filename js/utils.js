@@ -153,4 +153,57 @@ ATUtils = {
     });
   },
 
+  /**
+   * Returns promise for local storage objects that this extension has stored.
+   */
+  getLocalStoreObjects: function() {
+    return new Promise(function(resolve, reject) {
+      chrome.storage.sync.get(null, function(objects) {
+        console.log("chrome gave me: ", objects);
+        resolve(objects);
+      });
+    });
+  },
+
+
+  /**
+   * Deletes the local storage object if no matching cookie is found.
+   * Returns promise.
+   */
+  deleteIfInvalid: function(key, object) {
+    return new Promise(function(resolve, reject) {
+      var domain = object.cookieDomain;
+      var name = object.cookieName;
+      domain = domain.indexOf(".") === 0 ? "http://www" + domain :
+         "http://" + domain;
+
+      ATUtils.getCookie(domain, name).then(function(cookie) {
+        if (cookie === null) {
+          console.log('Cookie missing, deleting key: ', key);
+          chrome.storage.sync.remove(key, function() {});
+        } else {
+        }
+        resolve("Deleted");
+      });
+    });
+  },
+
+
+  /**
+   * Removes all the data this extension stored in local storage, except user
+   * id. Resolves because it is a promise.
+   */
+  cleanUpLocalStorage: function() {
+    return new Promise(function(resolve, reject) {
+      ATUtils.getLocalStoreObjects().then(function(objects) {
+        for (key in objects) {
+          if (key.indexOf("AffiliateTracker_") === 0 &&
+              key !== "AffiliateTracker_userId") {
+            ATUtils.deleteIfInvalid(key, objects[key]).then(function() {});
+          }
+        }
+        resolve("Done!");
+      })
+    });;
+  },
 }

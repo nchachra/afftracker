@@ -60,19 +60,6 @@ var ATPopup = {
 
 
   /**
-   * Returns promise for local storage objects that this extension has stored.
-   */
-  getLocalStoreObjects: function() {
-    return new Promise(function(resolve, reject) {
-      chrome.storage.sync.get(null, function(objects) {
-        console.log("chrome gave me: ", objects);
-        resolve(objects);
-      });
-    });
-  },
-
-
-  /**
    * Returns a promise with rows.
    *
    * @param{array} cookies Array of cookies
@@ -84,7 +71,8 @@ var ATPopup = {
     return new Promise(function(resolve, reject) {
       var rows = [];
       console.log("in create rows: ", cookies);
-      ATPopup.getLocalStoreObjects().then(function(objects) {
+      ATPopup.background.ATUtils.getLocalStoreObjects().then(
+          function(objects) {
         console.log("local store objects: ", objects);
         var cj = [];
         cookies.forEach(function(cookie) {

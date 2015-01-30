@@ -199,7 +199,6 @@ var ATBg = {
     var sub = new ATSubmission();
     sub.affiliate = affId;
     sub.merchant = merchant;
-    console.log("Wanting to set cookie for: ", sub);
     sub.setCookie(cookie, "object").then(function() {
       console.log("Setting cookie for existing cookie: ", sub, cookie);
       ATBg.storeInLocalStorage(sub);
@@ -506,35 +505,39 @@ var ATBg = {
     sub.updateReqRespSeq(response);
     var cookieHeaders = ATUtils.getHeadersForName(response.responseHeaders,
         "set-cookie");
+    var set_cookie_promises = [];
     cookieHeaders.forEach(function(header) {
       if (!ATParse.isUsefulCookie(header.value)) {
         return;
       }
-      sub.setCookie(header.value, "header", [response.url]).then(
-        function() {
-          console.log("Cookie value set for header!");
-        });
+      set_cookie_promises.push(sub.setCookie(header.value, "header", [response.url]));
+    });
+    if (set_cookie_promises.length === 0) {
+      return;
+    }
+    Promise.all(set_cookie_promises).then(function() {
+      console.log("Promises fulfilled for set cookie");
       if (!sub.merchant) {
         sub.determineAndSetMerchant(response.url);
       }
       if (!sub.affiliate && sub.merchant) {
-        sub.determineAndSetAffiliate(response.url, header.value);
+        sub.determineAndSetAffiliate(response.url, sub.cookieHeader);
+      }
+      if (sub.affiliate && response.statusLine.indexOf("200") !== -1) {
+        sub.prolongLife(ATBg.domTimerCallback);
+        console.log("Filled up object for submission: ", sub);
+        ATBg.notifyUser(sub.merchant, sub.origin);
+        // When Chrome prefetches, it gets the cookie but throws it away. Don't
+        // clobber our data in local storage; but no harm in notifying user
+        // or sending data to server.
+        if (sub.origin !== null) {
+          ATBg.storeInLocalStorage(sub);
+        }
+        ATBg.getLandingPage(response).then(function(landingUrl) {
+          sub.landing = landingUrl;
+        }, function(error) {});
+        ATBg.getDomElementsFromTab(response.tabId, sub);
       }
     });
-    if (sub.affiliate && response.statusLine.indexOf("200") !== -1) {
-      console.log("Filled up object for submission: ", sub);
-      ATBg.notifyUser(sub.merchant, sub.origin);
-      // When Chrome prefetches, it gets the cookie but throws it away. Don't
-      // clobber our data in local storage; but no harm in notifying user
-      // or sending data to server.
-      if (sub.origin !== null) {
-        ATBg.storeInLocalStorage(sub);
-      }
-      sub.prolongLife(ATBg.domTimerCallback);
-      ATBg.getLandingPage(response).then(function(landingUrl) {
-        sub.landing = landingUrl;
-      }, function(error) {});
-      ATBg.getDomElementsFromTab(response.tabId, sub);
-    }
   },
 };

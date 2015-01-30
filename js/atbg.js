@@ -166,6 +166,7 @@ var ATBg = {
    * FTR.
    */
   processExistingCookies: function() {
+    console.log("processing existing cookies");
     ATBg.getAllMatchingCookiesWithMerchants().then(function(cookies) {
       cookies.forEach(function(cookie, index) {
         var key = AT_CONSTANTS.KEY_ID_PREFIX + cookie.merchant;
@@ -536,45 +537,74 @@ var ATBg = {
     sub.updateReqRespSeq(response);
     var cookieHeaders = ATUtils.getHeadersForName(response.responseHeaders,
         "set-cookie");
-    var set_cookie_promises = [];
     cookieHeaders.forEach(function(header) {
-      if (!ATParse.isUsefulCookie(header.value)) {
-        return;
-      }
-      set_cookie_promises.push(sub.setCookie(header.value, "header", [response.url]));
-    });
-    // For commission junction set-cookie header comes from an intermediate URL
-    // in the hop chain, so we can't expect status to be 200 for it.
-    if (set_cookie_promises.length === 0) {
-      if (sub.merchant === null ||
-          sub.merchant.indexOf("commission junction") === -1) {
-        return;
-      }
-    }
-    Promise.all(set_cookie_promises).then(function() {
-      if (!sub.merchant) {
-        sub.determineAndSetMerchant(response.url);
-      }
-      if (!sub.affiliate && sub.merchant) {
-        sub.determineAndSetAffiliate(response.url, sub.cookieHeader);
-      }
-      if (sub.affiliate && response.statusLine) {
-        if(response.statusLine.indexOf("200") !== -1) {
-          sub.prolongLife(ATBg.domTimerCallback);
-          console.log("Filled up object for submission: ", sub);
-          ATBg.notifyUser(sub.merchant, sub.origin);
-          // When Chrome prefetches, it gets the cookie but throws it away. Don't
-          // clobber our data in local storage; but no harm in notifying user
-          // or sending data to server.
-          if (sub.origin !== null) {
-            ATBg.storeInLocalStorage(sub);
+      // For commission junction set-cookie header comes from an intermediate URL
+      // in the hop chain, so we can't expect status to be 200 for it.
+      if (ATParse.isUsefulCookie(header.value)) {
+        if (!sub.merchant) {
+          console.log("Getting merchant for: ", response.url);
+          sub.determineAndSetMerchant(response.url);
+          console.log("Got merchant: ", sub.merchant);
+        }
+        if (!sub.affiliate && sub.merchant) {
+          console.log("getting affiliate for: ", response.url, header.value);
+          sub.determineAndSetAffiliate(response.url, header.value);
+          console.log("got affiliate: ", sub.affiliate);
+        }
+        console.log("Gonna read merchant k");
+        if (sub.merchant !== null && sub.merchant.indexOf("commission junction") !== -1) {
+          console.log("Setting up cjpromise with: ", header.value, response.url);
+          if (!sub.hasOwnProperty("cjpromise")) {
+            sub["cjpromise"] = sub.setCookie(header.value, "header", [response.url]);
           }
-          ATBg.getLandingPage(response).then(function(landingUrl) {
-            sub.landing = landingUrl;
-          }, function(error) {});
-          ATBg.getDomElementsFromTab(response.tabId, sub);
+        } else {
+          sub.setCookie(header.value, "header", [response.url]).then(function() {
+            console.log("COokie promise fulfilled", sub, response);
+            if (!sub.merchant) {
+              sub.determineAndSetMerchant(response.url);
+            }
+            if (!sub.affiliate && sub.merchant) {
+              sub.determineAndSetAffiliate(response.url, header.value);
+            }
+            if (sub.affiliate &&
+              response.statusLine &&
+              response.statusLine.indexOf("200") !== -1)
+              console.log("Should be completing this request now; ", sub, response);
+              ATBg.completedRequest(sub, response);
+          });
         }
       }
     });
+    if (sub.merchant &&
+        sub.merchant.indexOf("commission junction") !== -1 &&
+        sub.cjpromise) {
+      console.log("Going to call promise now: ", response);
+      sub["cjpromise"].then(function() {
+        if (response.statusLine && response.statusLine.indexOf("200") !== -1) {
+          console.log("Going to do horrible things with sub, response ", sub, response);
+          ATBg.completedRequest(sub, response);
+          delete sub["cjpromise"];
+        }
+      });
+    }
+  },
+
+  /** takes submission andt the last response
+   */
+
+  completedRequest: function(sub, response) {
+    sub.prolongLife(ATBg.domTimerCallback);
+    console.log("Filled up object for submission: ", sub);
+    ATBg.notifyUser(sub.merchant, sub.origin);
+    // When Chrome prefetches, it gets the cookie but throws it away. Don't
+    // clobber our data in local storage; but no harm in notifying user
+    // or sending data to server.
+    if (sub.origin !== null) {
+      ATBg.storeInLocalStorage(sub);
+    }
+    ATBg.getLandingPage(response).then(function(landingUrl) {
+      sub.landing = landingUrl;
+    }, function(error) {});
+    ATBg.getDomElementsFromTab(response.tabId, sub);
   },
 };

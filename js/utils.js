@@ -36,6 +36,7 @@ ATUtils = {
    * Returns promise of a cookie corresponding to url and name.
    */
   getCookie: function(url, name) {
+    console.log("Trying to get cookie for name, url: ", name, url);
     console.assert(typeof url === "string", "URL should be string");
     console.assert(typeof name === "string", "Cookie name should be string");
     return new Promise(function(resolve, reject) {
@@ -174,7 +175,7 @@ ATUtils = {
     return new Promise(function(resolve, reject) {
       var domain = object.cookieDomain;
       var name = object.cookieName;
-      domain = domain.indexOf(".") === 0 ? "http://www" + domain :
+      domain = domain && domain.indexOf(".") === 0 ? "http://www" + domain :
          "http://" + domain;
 
       ATUtils.getCookie(domain, name).then(function(cookie) {

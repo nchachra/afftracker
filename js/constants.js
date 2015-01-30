@@ -136,7 +136,7 @@ AT_CONSTANTS = {
                   '|(hidemyass.com)\\/',
 
                   /* Commission Junction */
-                  '|(\\/click-\\d+-\\d+$)',
+                  '|((\\/click-\\d+-\\d+)(&.*)?$)',
                 ].join(''), 'i'),
 
   /**

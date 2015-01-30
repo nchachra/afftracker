@@ -199,7 +199,10 @@ AT_CONSTANTS = {
             // Merchant is represented by digits after aw.
             // awDIGITS=publisherId|adclickedId|adgroupid|timeofclick|
             //    referenceaddedbyreferrer|typeofad|idforproduct
+            // awpvDIGITS=publisherId|somethingelse
+            // refer:http://goo.gl/HOChii
             '|(aw\\d+=(\\d+)\\|.*)',
+            '|(awpv\\d+=(\\d+)\\|.*)',
 
             // LinkShare.
             // Merchant is represented by digits followed by lsclick_mid in

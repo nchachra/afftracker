@@ -139,7 +139,11 @@ var ATParse = {
       merchant = "shareasale.com (merchant:" + cookieName.substring(8) + ")";
     } else if (merchant.indexOf("awin1.com") != -1 &&
         cookieName.indexOf("aw") == 0) {
-      merchant = "affiliate window (merchant:" + cookieName.substring(2) + ")";
+      if (cookieName.indexOf("awpv") == 0) {
+        merchant = "affiliate window (merchant:" + cookieName.substring(4) + ")";
+      } else {
+        merchant = "affiliate window (merchant:" + cookieName.substring(2) + ")";
+      }
     } else if (merchant.indexOf("linksynergy.com") != -1) {
       if (cookieName.indexOf("lsclick_mid") == 0) {
         merchant = "linkshare (merchant:" + cookieName.substring(11) + ")";
@@ -297,8 +301,10 @@ var ATParse = {
         header.indexOf("domain=.bluehost.com;") === -1 &&
         // Some merchants will set the same cookie as affiliate window
         // with their domains. Ignore those, it's redundant info for us.
+        // Affiliate window domain can be .awin1.com or awin1.com
         !(header.indexOf("aw") === 0 &&
-          header.indexOf("domain=.awin1.com;") === -1)) {
+          (header.indexOf("domain=.awin1.com;") === -1 &&
+           header.indexOf("domain=awin1.com;") === -1))) {
       return true;
     }
     return false;

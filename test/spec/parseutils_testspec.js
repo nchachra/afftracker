@@ -139,6 +139,13 @@ describe("parseutils.js tests", function () {
     expect(merchant).toEqual("affiliate window (merchant:3041)");
   });
 
+  it("tests getMerchantFromCookieParams() affiliate window", function() {
+    var merchant = ATParse.getMerchantFromCookieParams(".awin1.com", "awpv3041");
+    expect(merchant).toEqual("affiliate window (merchant:3041)");
+  });
+
+
+
   it("tests getMerchantFromCookieParams() linkshare#1", function() {
     var merchant = ATParse.getMerchantFromCookieParams(".linksynergy.com", "linkshare_cookie236989");
     expect(merchant).toEqual("linkshare (merchant:236989)");
@@ -429,6 +436,15 @@ describe("parseutils.js tests", function () {
     var flag = ATParse.isUsefulCookie(cookie);
     expect(flag).toBe(true);
   });
+
+  it("tests isUsefulCookie()  good match #3", function() {
+    var cookie = "awpv0000=1111|blah; path=/; " +
+      "domain=.awin1.com; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(true);
+  });
+
+
 
 
 

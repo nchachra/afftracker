@@ -14,6 +14,7 @@ Low Pri:
   blogadd=joneslow174
   aff24h=5252696
   aref=12026 aref=none aref=794798
+* We are cleaning up rather well, but still maybe tie callbacks to cookies so that when they are deleted, local storage object is deleted too.
 
 
 NOTES:

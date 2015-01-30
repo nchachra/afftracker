@@ -110,35 +110,53 @@ var ATBg = {
         cookiesArr.forEach(function(candidates) {
           matchedCookies.push.apply(matchedCookies, candidates);
         });
-        console.log("resolving with: ", matchedCookies);
-        resolve(ATBg.appendMerchantsAndAffiliates(matchedCookies));
+        ATBg.appendMerchantsAndAffiliates(matchedCookies).then(
+            function(cookiesWithFields) {
+          resolve(cookiesWithFields);
+        });
       });
     });
   },
 
   /**
    * Appends merchant and affiliate fields to cookie if able to determine
-   * either.
+   * either. Returns promise.
    */
   appendMerchantsAndAffiliates: function(cookies) {
-    var cookiesWithFields = [];
-    cookies.forEach(function(cookie, index) {
-      if (AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
-        var merchant = ATParse.getMerchant("Cookie", [cookie.domain,
-            cookie.name]);
-        // We identified an affiliate cookie.
-        var affId = ATParse.parseAffiliateId(merchant,
-          cookie.name + "=" + cookie.value, "COOKIE");
-        cookie["merchant"] = merchant ? merchant : null;
-        cookie["affiliate"] = affId ? affId: null;
-        // Don't bother processing if we can't determine neither merchant
-        // nor affiliate
-        if (affId || merchant) {
-          cookiesWithFields.push(cookie);
-        }
-      }
+    return new Promise(function(resolve, reject) {
+      ATUtils.getLocalStoreObjects().then(function(objects) {
+        var cookiesWithFields = new Array();
+        cookies.forEach(function(cookie, index) {
+          // The program cookies should be treated differently.
+          if (cookie.name === "LCLK") {
+              for (key in objects) {
+                if (key.indexOf("AffiliateTracker_commission junction") === 0) {
+                  if (cookie.value === objects[key].cookieValue &&
+                    cookie.domain === objects[key].cookieDomain) {
+                    cookie["merchant"] = key.substring(key.indexOf("_") + 1);
+                    cookie["affiliate"] = objects[key].affiliate;
+                    cookiesWithFields.push(cookie);
+                  }
+                }
+              }
+          } else if (AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
+            var merchant = ATParse.getMerchant("Cookie", [cookie.domain,
+                cookie.name]);
+            // We identified an affiliate cookie.
+            var affId = ATParse.parseAffiliateId(merchant,
+              cookie.name + "=" + cookie.value, "COOKIE");
+            cookie["merchant"] = merchant ? merchant : null;
+            cookie["affiliate"] = affId ? affId: null;
+            // Don't bother processing if we can't determine neither merchant
+            // nor affiliate
+            if (affId || merchant) {
+              cookiesWithFields.push(cookie);
+            }
+          }
+        });
+        resolve(cookiesWithFields);
+      });
     });
-    return cookiesWithFields;
   },
 
 
@@ -152,13 +170,15 @@ var ATBg = {
       cookies.forEach(function(cookie, index) {
         var key = AT_CONSTANTS.KEY_ID_PREFIX + cookie.merchant;
         chrome.storage.sync.get(key, function(object) {
-          if (object !== null &&
-              object[key].cookieDomain === cookie.domain &&
-              object[key].cookieName === cookie.name &&
-              object[key].cookieValue === cookie.value) {
-            // Don't overwrite the storage object, it's still valid.
-            console.log("Not going to over write");
-            return;
+          if (object !== null && typeof object !== "undefined" &&
+              object.hasOwnProperty(key)) {
+            if(object[key].cookieDomain === cookie.domain &&
+                object[key].cookieName === cookie.name &&
+                object[key].cookieValue === cookie.value) {
+              // Don't overwrite the storage object, it's still valid.
+              console.log("Not going to over write");
+              return;
+            }
           }
           ATBg.processExistingAffCookie(cookie.affiliate, cookie.merchant, cookie);
         });
@@ -523,31 +543,37 @@ var ATBg = {
       }
       set_cookie_promises.push(sub.setCookie(header.value, "header", [response.url]));
     });
+    // For commission junction set-cookie header comes from an intermediate URL
+    // in the hop chain, so we can't expect status to be 200 for it.
     if (set_cookie_promises.length === 0) {
-      return;
+      if (sub.merchant === null ||
+          sub.merchant.indexOf("commission junction") === -1) {
+        return;
+      }
     }
     Promise.all(set_cookie_promises).then(function() {
-      console.log("Promises fulfilled for set cookie");
       if (!sub.merchant) {
         sub.determineAndSetMerchant(response.url);
       }
       if (!sub.affiliate && sub.merchant) {
         sub.determineAndSetAffiliate(response.url, sub.cookieHeader);
       }
-      if (sub.affiliate && response.statusLine.indexOf("200") !== -1) {
-        sub.prolongLife(ATBg.domTimerCallback);
-        console.log("Filled up object for submission: ", sub);
-        ATBg.notifyUser(sub.merchant, sub.origin);
-        // When Chrome prefetches, it gets the cookie but throws it away. Don't
-        // clobber our data in local storage; but no harm in notifying user
-        // or sending data to server.
-        if (sub.origin !== null) {
-          ATBg.storeInLocalStorage(sub);
+      if (sub.affiliate && response.statusLine) {
+        if(response.statusLine.indexOf("200") !== -1) {
+          sub.prolongLife(ATBg.domTimerCallback);
+          console.log("Filled up object for submission: ", sub);
+          ATBg.notifyUser(sub.merchant, sub.origin);
+          // When Chrome prefetches, it gets the cookie but throws it away. Don't
+          // clobber our data in local storage; but no harm in notifying user
+          // or sending data to server.
+          if (sub.origin !== null) {
+            ATBg.storeInLocalStorage(sub);
+          }
+          ATBg.getLandingPage(response).then(function(landingUrl) {
+            sub.landing = landingUrl;
+          }, function(error) {});
+          ATBg.getDomElementsFromTab(response.tabId, sub);
         }
-        ATBg.getLandingPage(response).then(function(landingUrl) {
-          sub.landing = landingUrl;
-        }, function(error) {});
-        ATBg.getDomElementsFromTab(response.tabId, sub);
       }
     });
   },

@@ -368,6 +368,34 @@ describe("parseutils.js tests", function () {
   });
 
 
+  it("tests findCJUrlInReqSeq() with match 2", function() {
+    var mockReqRespSeq = [
+            {
+                "url": "http://www.tkqlhce.com/click-2798135-10842761&afsrc=1?sid=benbathandbeyond%2Ecom",
+                "statusLine": null,
+                "type": "image",
+                "method": "GET"
+            },
+            {
+                "url": "http://www.amazon.com/gp/product/doopdoop",
+                "statusLine": "HTTP/1.1 200 OK",
+                "type": "image",
+                "method": "GET"
+            },
+            {
+                "url": "http://www.notthisone.com/click-2222-3333",
+                "statusLine": "HTTP/1.1 200 OK",
+                "type": "image",
+                "method": "GET"
+            },
+        ];
+    var url = ATParse.findCJUrlInReqSeq(mockReqRespSeq);
+    expect(url).toEqual("http://www.tkqlhce.com/click-2798135-10842761&afsrc=1?sid=benbathandbeyond%2Ecom");
+  });
+
+
+
+
   //isUsefulCookie
   it("tests isUsefulCookie()  no match ever", function() {
     var flag = ATParse.isUsefulCookie("doesntevenlooklikeaheader");

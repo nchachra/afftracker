@@ -194,8 +194,9 @@ ATSubmission.prototype.determineAndSetAffiliate = function(url, header) {
   if (this.merchant &&
       AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1) {
     this.affiliate = ATParse.parseAffiliateId(this.merchant, url, "URL");
-  } else if (header.indexOf("LCLK=") == 0) {
+  } else if (header.indexOf("LCLK=") === 0) {
     // Commission Junction
+    var cjUrl = ATParse.findCJUrlInReqSeq(this.reqRespSeq);
     this.affiliate = ATParse.parseAffiliateId(this.merchant,
       ATParse.findCJUrlInReqSeq(this.reqRespSeq) || "", "URL");
   } else {

@@ -292,8 +292,8 @@ var ATParse = {
         header.indexOf("domain=.bluehost.com;") === -1 &&
         // Some merchants will set the same cookie as affiliate window
         // with their domains. Ignore those, it's redundant info for us.
-        !(header.indexOf("aw") == 0 &&
-          header.indexOf("domain=.awin1.com;") == -1)) {
+        !(header.indexOf("aw") === 0 &&
+          header.indexOf("domain=.awin1.com;") === -1)) {
       return true;
     }
     return false;

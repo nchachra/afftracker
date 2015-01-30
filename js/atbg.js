@@ -150,7 +150,18 @@ var ATBg = {
   processExistingCookies: function() {
     ATBg.getAllMatchingCookiesWithMerchants().then(function(cookies) {
       cookies.forEach(function(cookie, index) {
-        ATBg.processExistingAffCookie(cookie.affiliate, cookie.merchant, cookie);
+        var key = AT_CONSTANTS.KEY_ID_PREFIX + cookie.merchant;
+        chrome.storage.sync.get(key, function(object) {
+          if (object !== null &&
+              object[key].cookieDomain === cookie.domain &&
+              object[key].cookieName === cookie.name &&
+              object[key].cookieValue === cookie.value) {
+            // Don't overwrite the storage object, it's still valid.
+            console.log("Not going to over write");
+            return;
+          }
+          ATBg.processExistingAffCookie(cookie.affiliate, cookie.merchant, cookie);
+        });
       });
     });
   },

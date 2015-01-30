@@ -209,8 +209,13 @@ AT_CONSTANTS = {
             // the cookie name.
             // lsclick_midMERCHANTID=TIMESTAMP|AFFID-RANDOMSTRING
             // linkshare_cookieMID=AID:MID
+            // sometimes : is encoded with %3A
             '|(lsclick_mid\\d+=.*\\|(.*)-.*)',
             '|(linkshare_cookie\\d+=(\\d+):\\d+)',
+            '|(linkshare_cookie\\d+=(\\d+)\\%3A\\d+)',
+            //'|(linkshare_cookie=(\\d+):\\d+)',
+            //'|(linkshare_cookie=(\\d+)\\%3A\\d+)',
+
 
             // Commission Junction
             // It does not contain the affiliate ID in the cookie name though.

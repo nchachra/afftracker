@@ -135,6 +135,12 @@ var AffiliateDomCS = {
 
     switch(type) {
       case "sub_frame":
+        // For frames, there are often errors with increasing size. We are
+        // able to set the property of the parent though, so if we
+        // succeeded in that, leave.
+        if (el.parentNode.className.indexOf("aff-zoom") !== -1) {
+          return;
+        }
         break;
       case "image":
         break;

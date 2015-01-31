@@ -16,6 +16,7 @@ Low Pri:
   aref=12026 aref=none aref=794798
 * We are cleaning up rather well, but still maybe tie callbacks to cookies so that when they are deleted, local storage object is deleted too.
 * In cases of 301 redirect (Moved Permanently), Chrome redirects to the new page which has a new request id, which in turn may issues requests for the page that actually does cookie stuffing. I've seen examples of this and in these casese, we never really find out the referer chain. One way to do it would be to always hold a mapping of "url": "referer", and then when we create a request chain and find that our url was referred to, combine objects. Otherwise, have timers to delete the url: referer mappings. Kind of complicated, maybe useful though. One example is 00o00.blogspot.com which leads to http://www.whats-he-wearing.com/ which is the site that stuffs for linkshare.
+* Attempted cookie stuffing would be awesome to know. That means affilaite is likely banned or something.
 
 
 NOTES:

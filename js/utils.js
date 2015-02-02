@@ -12,11 +12,19 @@ ATUtils = {
     var uploadUrl = null;
     switch (datatype) {
       case "extension":
-        uploadUrl = "http://affiliatetracker.ucsd.edu/upload-extensions";
+        if (ATBg.debug) {
+          uploadUrl = "http://affiliatetracker.ucsd.edu:5000/upload-extensions";
+        } else {
+          uploadUrl = "http://affiliatetracker.ucsd.edu/upload-extensions";
+        }
         break;
       case "cookie":
         //ATBg.log(data);
-        uploadUrl = "http://affiliatetracker.ucsd.edu/upload-cookies";
+        if (ATBg.debug) {
+          uploadUrl = "http://affiliatetracker.ucsd.edu:5000/upload-cookies";
+        } else {
+          uploadUrl = "http://affiliatetracker.ucsd.edu/upload-cookies";
+        }
         ATBg.log("\n\n");
         break;
       default:
@@ -27,9 +35,7 @@ ATUtils = {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", uploadUrl);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    if (!ATBg.debug) {
-      xhr.send(data);
-    }
+    xhr.send(data);
   },
 
   /**

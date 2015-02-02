@@ -130,6 +130,9 @@ ATSubmission.prototype.updateReqRespSeq = function(req) {
   // last one.
   var refererHeaders = ATUtils.getHeadersForName(req.requestHeaders ||
       req.responseHeaders, "referer");
+  var frameOptionHeader = ATUtils.getHeadersForName(req.requestHeaders ||
+      req.responseHeaders, "x-frame-options");
+
   this.reqRespSeq.push({
     "method": req.method,
     "timestamp": req.timeStamp,
@@ -138,6 +141,8 @@ ATSubmission.prototype.updateReqRespSeq = function(req) {
     "statusLine": req.hasOwnProperty("statusLine") ? req.statusLine : null,
     "referer": refererHeaders.length > 0 ? refererHeaders[0].value : null,
     "type": req.requestHeaders ? "request" : "response",
+    "x-frame-options": frameOptionHeader.length > 0 ?
+        frameOptionHeader[0].value : null,
    });
  };
 

@@ -335,7 +335,9 @@ var ATBg = {
         resolve(response.url);
     } else if (response.tabId >= 0 && !chrome.runtime.lastError) {
         chrome.tabs.get(response.tabId, function(tab) {
-          if (typeof tab !== "undefined") {
+          if (chrome.runtime.lastError) {
+            console.warn("Tab error: ", chrome.runtime.lastError.message);
+          } else if (typeof tab !== "undefined") {
             resolve(tab.url);
           }
         });
@@ -415,11 +417,15 @@ var ATBg = {
 
     if (request.tabId >= 0 && !chrome.runtime.lastError) {
       chrome.tabs.get(request.tabId, function(tab) {
-        if (tab) {
+        if (chrome.runtime.lastError) {
+          console.warn("Chrome error getting tab: ", chrome.runtime.lastError.message);
+        } else if (tab) {
           sub.origin = tab.url;
           if (tab.hasOwnProperty("openerTabId") && tab.openerTabId) {
             chrome.tabs.get(tab.openerTabId, function(openerTab) {
-              if (openerTab) {
+              if (chrome.runtime.lastError) {
+                console.warn(chrome.runtime.lastError.message);
+              } else if (openerTab) {
                 sub.opener = openerTab.url;
                 sub.newTab = true;
               }
@@ -604,7 +610,7 @@ var ATBg = {
     }
     ATBg.getLandingPage(response).then(function(landingUrl) {
       sub.landing = landingUrl;
+      ATBg.getDomElementsFromTab(response.tabId, sub);
     }, function(error) {});
-    ATBg.getDomElementsFromTab(response.tabId, sub);
   },
 };

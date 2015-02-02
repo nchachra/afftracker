@@ -12,11 +12,11 @@ ATUtils = {
     var uploadUrl = null;
     switch (datatype) {
       case "extension":
-        uploadUrl = "http://angelic.ucsd.edu:5000/upload-extensions";
+        uploadUrl = "http://affiliatetracker.ucsd.edu/upload-extensions";
         break;
       case "cookie":
         //ATBg.log(data);
-        uploadUrl = "http://angelic.ucsd.edu:5000/upload-cookies";
+        uploadUrl = "http://affiliatetracker.ucsd.edu/upload-cookies";
         ATBg.log("\n\n");
         break;
       default:
@@ -125,7 +125,9 @@ ATUtils = {
     return new Promise(function(resolve, reject) {
       if (tabId >= 0 && !chrome.runtime.lastError) {
         chrome.tabs.get(tabId, function(tab) {
-          if (typeof tab !== "undefined" && typeof tab !== null) {
+          if (chrome.runtime.lastError) {
+            console.warn("Error getting tab: ", chrome.runtime.lastError.message);
+          } else if (typeof tab !== "undefined" && typeof tab !== null) {
             if (tab.status === "complete") {
               resolve(tab);
             } else {

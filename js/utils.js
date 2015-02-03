@@ -53,17 +53,23 @@ ATUtils = {
   },
 
   /**
-   * Returns a resolved promise when a userid is created.
+   * Returns a resolved promise when a userid is created. When supplied with
+   * user id, it doesn't generate a new one. Only use this when using extension
+   * for special purposes like crawling.
    *
    * @public
    */
-  getUserId: function() {
+  getUserId: function(userId) {
     return new Promise(function(resolve, reject) {
       if (!this.userId) {
         chrome.storage.sync.get(AT_CONSTANTS.USER_ID_STORAGE_KEY,
             function(result) {
           if (!result.hasOwnProperty(AT_CONSTANTS.USER_ID_STORAGE_KEY)) {
-            ATBg.userId = ATUtils.generateUserId();
+            if (!userId) {
+              ATBg.userId = ATUtils.generateUserId();
+            } else {
+              ATBg.userId = "digitalpoint-crawl-0";
+            }
             var storage_key = AT_CONSTANTS.USER_ID_STORAGE_KEY;
             // Don't create an object = {key: value} where key is a variable.
             var storageObj = {};

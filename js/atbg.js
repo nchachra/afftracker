@@ -3,7 +3,7 @@ var ATBg = {
   /*
    * Debugging flag
    */
-  debug: false,
+  debug: true,
 
   /**
    * We track all requests as possibly affiliate URL requests. These are
@@ -14,6 +14,13 @@ var ATBg = {
    * @private
    */
   probableSubmissions: {},
+
+
+  /**
+   * We simply keep all the requests and responses to send them to server
+   * here. This is used in crawl mode only.
+   */
+  crawlModeRequestSubmission: [],
 
 
   /**
@@ -504,6 +511,16 @@ var ATBg = {
   },
 
   /**
+   * Records all requests. When the page completes loading, all the requests
+   * are submitted to server as:
+   *  first_url: [array of request, responses as they occur]
+   */
+  crawlModeRequestResponseCallback: function(request) {
+    crawlModeRequestSubmission.push(request);
+  },
+
+
+  /**
    * Intercept every outgoing request to partially initialize a submission
    * object. We finish processing when we receive a reponse with a cookie. All
    * submission objects are tracked using the unique request ids Chrome
@@ -613,4 +630,5 @@ var ATBg = {
       ATBg.getDomElementsFromTab(response.tabId, sub);
     }, function(error) {});
   },
+
 };

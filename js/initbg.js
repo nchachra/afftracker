@@ -1,6 +1,14 @@
 ATInit = {
 
   /**
+   * Currently the only distinction between crawl mode, and regular mode is
+   * that in crawl mode, the user id below is used always, and all requests
+   * and responses are recorded for a visit.
+   */
+  crawlMode: true,
+  crawlId: 'digitalpoint-crawl-0',
+
+  /**
     * Initialize the extension. Specifically, it relies on the userid creation
     * promise to have a userid. Only when one is created it:
     * 1) Initializes and parses the existing cookies to display in the popup.
@@ -17,7 +25,7 @@ ATInit = {
 
     // Clean up local storage before proceeding.
     ATUtils.cleanUpLocalStorage().then(function() {
-      ATUtils.getUserId().then(function(userId) {
+      ATUtils.getUserId(ATInit.crawlId).then(function(userId) {
         console.assert(typeof ATBg.userId === "string",
           "Generated UserId should be a string.");
         // Every second, send data to server if there is any.
@@ -30,14 +38,16 @@ ATInit = {
         // attributes.
         chrome.tabs.onUpdated.addListener(ATBg.tabLoadCallback);
 
-       chrome.webRequest.onSendHeaders.addListener(
+        chrome.webRequest.onSendHeaders.addListener(
           ATBg.requestCallback, {urls: ["<all_urls>"]}, ["requestHeaders"]);
-       // There is an inherent assumption that onSendHeaders is fired before
-       //   onHeadersReceived. It would be odd if this assumption is violated.
-      chrome.webRequest.onHeadersReceived.addListener(
+        // There is an inherent assumption that onSendHeaders is fired before
+        //   onHeadersReceived. It would be odd if this assumption is violated.
+        chrome.webRequest.onHeadersReceived.addListener(
         ATBg.responseCallback, {urls: ["<all_urls>"]}, ["responseHeaders"]);
 
-      }, function(error) {
+        if (ATInit.crawlMode) {
+          ATInit.initializeCrawl();
+     }, function(error) {
         //TODO:
         //Theoretically the extension can still notify user. Change this once
         //data collection is not needed for the project. Or at least notify user
@@ -45,6 +55,23 @@ ATInit = {
         console.error("Failed to generate userid!", ATBg.userId);
       });
     });
+  },
+
+
+  /**
+   * Set up for crawling. Only runs when crawlMode is set to true.
+   */
+  initializeCrawl: function() {
+    console.warn("In crawlMode, will send all headers");
+    chrome.webRequest.onSendHeaders.addListener(
+      ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
+      ["requestHeaders"]);
+    chrome.webRequest.onHeadersReceived.addListener(
+      ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
+      ["requestHeaders"]);
+
+    CrawlUtils.crawlNextUrl();
+    chrome.webNavigation.onCompleted.addListener(CrawlUtils.completed);
   },
 }
 

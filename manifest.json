@@ -32,7 +32,9 @@
     "tabs",
     "storage",
     "cookies",
-    "management"
+    "management",
+    "webNavigation",
+    "browsingData"
   ],
 
   "web_accessible_resources": ["icons/zoomicon.png"]

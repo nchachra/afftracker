@@ -17,13 +17,6 @@ var ATBg = {
 
 
   /**
-   * We simply keep all the requests and responses to send them to server
-   * here. This is used in crawl mode only.
-   */
-  crawlModeRequestSubmission: [],
-
-
-  /**
    * Unique identifier for this user. Generated at initialization and stored
    * in local storage using USER_ID_STORAGE_KEY.
    *
@@ -250,6 +243,7 @@ var ATBg = {
    * @param{object} submissionObj Object to be eventually sent to server.
    */
   queueForSubmission: function(submissionObj) {
+    delete ATBg.probableSubmissions[submissionObj["requestId"]];
     ATBg.submissionQueue.push(submissionObj);
   },
 
@@ -516,7 +510,12 @@ var ATBg = {
    *  first_url: [array of request, responses as they occur]
    */
   crawlModeRequestResponseCallback: function(request) {
-    crawlModeRequestSubmission.push(request);
+    if (request.url !== "about:blank" &&
+        request.url.indexOf("chrome://extensions") === -1 &&
+        request.url.indexOf("127.0.0.1") === -1 &&
+        request.url.indexOf("affiliatetracker") === -1) {
+      CrawlUtils.crawlVisitRequestsSubmission["requests"].push(request);
+    }
   },
 
 
@@ -532,6 +531,11 @@ var ATBg = {
    */
   requestCallback: function(request) {
     var sub = ATBg.getSubmissionForRequest(request.requestId);
+    if (request.url.indexOf("127.0.0.1") !== -1 ||
+        request.url.indexOf("affiliatetracker.ucsd.edu") !== -1) {
+      // Ignore
+      return;
+    }
     if (!sub) {
       sub = ATBg.initializeSubmissionForRequest(request);
       //console.log("Partial submission:",  sub);
@@ -551,6 +555,10 @@ var ATBg = {
    * @param{Webrequest} response
    */
   responseCallback: function(response) {
+    if (response.url.indexOf("127.0.0.1") !== -1 ||
+        response.url.indexOf("affiliatetracker.ucsd.edu") !== -1) {
+      return;
+    }
     var sub = ATBg.getSubmissionForRequest(response.requestId);
     if (!sub) {
       console.warn(

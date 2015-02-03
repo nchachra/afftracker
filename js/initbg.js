@@ -30,6 +30,7 @@ ATInit = {
           "Generated UserId should be a string.");
         // Every second, send data to server if there is any.
         setInterval(ATBg.sendCookiesToServer, 1000);
+        console.log("Setting interval to: ", CrawlUtils.interval);
 
         ATBg.processExistingCookies();
         ATBg.processExistingExtensions();
@@ -47,6 +48,7 @@ ATInit = {
 
         if (ATInit.crawlMode) {
           ATInit.initializeCrawl();
+        }
      }, function(error) {
         //TODO:
         //Theoretically the extension can still notify user. Change this once
@@ -63,15 +65,19 @@ ATInit = {
    */
   initializeCrawl: function() {
     console.warn("In crawlMode, will send all headers");
-    chrome.webRequest.onSendHeaders.addListener(
-      ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
-      ["requestHeaders"]);
-    chrome.webRequest.onHeadersReceived.addListener(
-      ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
-      ["requestHeaders"]);
-
-    CrawlUtils.crawlNextUrl();
-    chrome.webNavigation.onCompleted.addListener(CrawlUtils.completed);
+    // Once the crawl is initialized and bootstrapped, it goes off on its own
+    // by calling crawlNextUrl until there are no more domains to be crawled.
+    CrawlUtils.initCrawlVisitSubmission().then(function() {;
+      chrome.webRequest.onSendHeaders.addListener(
+        ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
+        ["requestHeaders"]);
+      chrome.webRequest.onHeadersReceived.addListener(
+        ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
+        ["responseHeaders"]);
+      CrawlUtils.intervalHandle = setInterval(CrawlUtils.submitIfReady, 2000);
+      // Bootstrap
+      CrawlUtils.crawlNextUrl();
+    });
   },
 }
 

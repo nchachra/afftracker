@@ -12,7 +12,8 @@
   },
 
   "background": {
-    "scripts": ["js/md5.js", "js/enc-base64-min.js", "js/constants.js", "js/utils.js", "js/parseutils.js", "js/atbg.js", "js/submission.js", "js/initbg.js"],
+    "scripts": ["js/md5.js", "js/enc-base64-min.js", "js/constants.js", "js/utils.js", "js/parseutils.js", "js/atbg.js", "js/submission.js",
+      "js/crawlutils.js", "js/initbg.js"],
     "persistent": true
   },
 
@@ -33,7 +34,6 @@
     "storage",
     "cookies",
     "management",
-    "webNavigation",
     "browsingData"
   ],
 

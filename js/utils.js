@@ -27,6 +27,13 @@ ATUtils = {
         }
         ATBg.log("\n\n");
         break;
+      case "crawl-visit":
+        if (ATBg.debug) {
+          uploadUrl = "http://affiliatetracker.ucsd.edu:5000/upload-crawl-visit";
+        } else {
+          uploadUrl = "http://affiliatetracker.ucsd.edu/upload-crawl-visit";
+        }
+        break;
       default:
         console.error("Invalid datatype for sendXhr()");
         return;

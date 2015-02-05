@@ -244,6 +244,7 @@ var ATBg = {
    */
   queueForSubmission: function(submissionObj) {
     ATBg.submissionQueue.push(submissionObj);
+    delete ATBg.probableSubmissions[submissionObj["requestId"]];
   },
 
 

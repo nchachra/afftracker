@@ -19,13 +19,11 @@ ATUtils = {
         }
         break;
       case "cookie":
-        //ATBg.log(data);
         if (ATBg.debug) {
           uploadUrl = "http://affiliatetracker.ucsd.edu:5000/upload-cookies";
         } else {
           uploadUrl = "http://affiliatetracker.ucsd.edu/upload-cookies";
         }
-        ATBg.log("\n\n");
         break;
       default:
         console.error("Invalid datatype for sendXhr()");

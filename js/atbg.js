@@ -45,17 +45,6 @@ var ATBg = {
 
 
   /**
-   * Custom logging. Only logs if debug flag is set.
-   *
-   * @param{object} msg Message directly passed to console.log.
-   */
-  log: function(msg) {
-    if (this.debug)
-      console.log(msg);
-  },
-
-
-  /**
    * Sends a list of currently installed extensions to the server. We send
    * the extension name, id, and description. Exclude extensions that Chrome
    * seems to ship with already.
@@ -358,7 +347,7 @@ var ATBg = {
     }
     var notificationOpts = {
         type: 'basic',
-        iconUrl: 'icon.png',
+        iconUrl: 'icon128.png',
         title: merchant + " cookie",
         message: "From " + origin
      }

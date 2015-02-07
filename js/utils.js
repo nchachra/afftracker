@@ -75,7 +75,7 @@ ATUtils = {
             if (!userId) {
               ATBg.userId = ATUtils.generateUserId();
             } else {
-              ATBg.userId = "digitalpoint-crawl-0";
+              ATBg.userId = ATInit.crawlId;
             }
             var storage_key = AT_CONSTANTS.USER_ID_STORAGE_KEY;
             // Don't create an object = {key: value} where key is a variable.

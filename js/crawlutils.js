@@ -60,11 +60,27 @@ CrawlUtils = {
    */
   visitTimeout: 3 * 60 * 1000,
 
+  /**
+   * If we close the page too early, we don't give atbg a chance to collect
+   * information.
+   */
+  collectedCookieInfo: false,
+
+  /**
+   * If a tab has an onunload event, we can't close th tab. I found no way to
+   * close it using windows or tabs. The only elegant solution I found is to
+   * stop browsing using this browser.
+   */
+  stopUsingThisBrowser: false,
+
 
   initCrawlVisitSubmission: function() {
     return new Promise(function(resolve, reject) {
+      CrawlUtils.collectedCookieInfo = false;
       CrawlUtils.crawlVisitRequestsSubmission["userId"] = ATBg.userId;
+      CrawlUtils.crawlVisitRequestsSubmission["crawlDescription"] = ATInit.crawlDesc;
       CrawlUtils.crawlVisitRequestsSubmission["requests"] = [];
+      CrawlUtils.crawlVisitRequestsSubmission["domain"] = null;
       CrawlUtils.visitTabId = null;
       CrawlUtils.currentVisitUrl = null;
       CrawlUtils.visitSubmitted = false;
@@ -72,7 +88,7 @@ CrawlUtils = {
       // send the data and not wait more. Generally, I don't think this will
       // be used because memory cleanup of probableSubmissions is very good.
       CrawlUtils.crawlVisitRequestsSubmission["timer"] = setTimeout(
-          CrawlUtils.submitVisit, CrawlUtils.visitTimeout);
+          CrawlUtils.visitTimerCallback, CrawlUtils.visitTimeout);
       resolve();
     });
   },
@@ -85,8 +101,19 @@ CrawlUtils = {
    */
   crawlNextUrl: function() {
     if (CrawlUtils.crawlComplete) {
+      console.log("Crawl has completed, no more new domains.");
+      return;
+    } else if (CrawlUtils.stopUsingThisBrowser) {
+      console.log("This browser is hosed, stopping crawling.");
       return;
     }
+    chrome.tabs.query({'windowId': chrome.windows.WINDOW_ID_CURRENT}, function(tabs) {
+      console.warn("Number of tabs: ", tabs.length);
+      if (tabs.length > 1) {
+        console.warn("At any time, there should only be 1 tab open.");
+        CrawlUtils.stopUsingThisBrowser = true;
+      }
+    });
     var cu = CrawlUtils;
     cu.getXhrResponse(cu.crawlWaitingQUrl).then(function(response) {
       console.log("response: ", response);
@@ -99,7 +126,8 @@ CrawlUtils = {
         CrawlUtils.intervalHandle = null;
         return;
       }
-      var domain = response.split("\n")[1];
+      var domain = response.split("\n")[1].trim();
+      CrawlUtils.crawlVisitRequestsSubmission["domain"] = domain;
       console.log("This is domain: ", domain);
       cu.currentVisitUrl = "http://" + domain;
       console.log("goingto: ", cu.currentVisitUrl);
@@ -150,9 +178,10 @@ CrawlUtils = {
    * it never allows for enough time for the cookie to be set.
    */
   submitIfReady: function() {
-    console.log("Length f submissions: ", ATBg.probableSubmissions);
+    console.log("Length f submissions: ", Object.keys(ATBg.probableSubmissions).length);
     if (Object.keys(ATBg.probableSubmissions).length === 0 &&
-        CrawlUtils.currentVisitUrl !== null && !CrawlUtils.visitSubmitted) {
+        CrawlUtils.currentVisitUrl !== null && !CrawlUtils.visitSubmitted &&
+        ATBg.submissionQueue.length === 0) {
       console.log("Submitting crawl for: ", CrawlUtils.currentVisitUrl);
       CrawlUtils.submitVisit();
     } else if (CrawlUtils.crawlComplete && CrawlUtils.visitSubmitted) {
@@ -161,6 +190,16 @@ CrawlUtils = {
         CrawlUtils.intervalHandle = null;
         console.log("done");
     }
+  },
+
+
+  /**
+   * Callback for the maximum time spent on a visit.
+   */
+  visitTimerCallback: function() {
+    console.log('TImeout for visit; submitting visit even thuogh there are submission objects. Submission, Queue ',
+        ATBg.probableSubmissions, ATBg.submissionQueue);
+    CrawlUtils.submitVisit()
   },
 
 
@@ -183,11 +222,13 @@ CrawlUtils = {
       CrawlUtils.getXhrResponse(url).then(function(response) {
         console.log("Put into completedQ ", response);
         // Send this request to server
-        console.log("Sending crawler data to affiliatetracker");
+        var temp  = CrawlUtils.crawlVisitRequestsSubmission["requests"];
+        console.log("Sending crawler data to affiliatetracker", temp);
         CrawlUtils.sendCrawlVisitToServer().then(function() {
           var tabId = CrawlUtils["visitTabId"];
           console.log("Closing tab: ", tabId);
-          chrome.tabs.remove(tabId, function() {
+          CrawlUtils.removeTab(tabId).then(function() {
+            console.log("Tried to remove tab, error: ", chrome.runtime.lastError);
             console.log("Purging browser");
             CrawlUtils.purgeBrowser().then(function() {
               CrawlUtils.initCrawlVisitSubmission().then(function() {
@@ -197,10 +238,25 @@ CrawlUtils = {
                 }
               });
             });
+          }, function(error) {
+            // Usually this happens because of onDocumentUnload events and
+            // there's really no clean way of dealing with these.
+            console.log("Error closing tab: ", error);
+            CrawlUtils.stopUsingThisBrowser = true;
           });
         });
       });
     }
+  },
+
+  removeTab: function(tabId) {
+    return new Promise(function(resolve, reject) {
+      chrome.tabs.remove(tabId, function() {
+        // This callback is called when the remove signal is sent to thr
+        // browser, not when the tab actually closes. :'(
+        resolve();
+      });
+    });
   },
 
   purgeBrowser: function() {
@@ -230,9 +286,27 @@ CrawlUtils = {
   sendCrawlVisitToServer: function() {
     return new Promise(function(resolve, reject) {
       var data = JSON.stringify(CrawlUtils.crawlVisitRequestsSubmission);
-      console.log("Sending request data: ", data);
-      ATUtils.sendXhr(data, "crawl-visit");
-      resolve();
+      console.log("Sending visit data to server");
+      //CrawlUtils.sendXhr(data, "crawl-visit").then(function() {
+          resolve();
+      //});
+    });
+  },
+
+  sendXhr: function(data, type) {
+    return new Promise(function(resolve, reject) {
+      var http = new XMLHttpRequest();
+      var url = "http://affiliatetracker.ucsd.edu:5000/upload-crawl-visit";
+      http.open("POST", url, true);
+
+      //Send the proper header information along with the request
+      http.setRequestHeader("Content-type", "application/json;");
+      http.onreadystatechange = function() {//Call a function when the state changes.
+        if(http.readyState == 4 && http.status == 200) {
+          resolve();
+        }
+      }
+      http.send(data);
     });
   },
 }

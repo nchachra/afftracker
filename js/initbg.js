@@ -6,7 +6,8 @@ ATInit = {
    * and responses are recorded for a visit.
    */
   crawlMode: true,
-  crawlId: 'digitalpoint-crawl-0',
+  crawlId: 'crawl-digitalpoint-0',
+  crawlDesc: 'Digitalpoint.com domains for UserPref cookie',
 
   /**
     * Initialize the extension. Specifically, it relies on the userid creation

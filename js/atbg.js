@@ -231,7 +231,6 @@ var ATBg = {
    * @param{object} submissionObj Object to be eventually sent to server.
    */
   queueForSubmission: function(submissionObj) {
-    delete ATBg.probableSubmissions[submissionObj["requestId"]];
     ATBg.submissionQueue.push(submissionObj);
     delete ATBg.probableSubmissions[submissionObj["requestId"]];
   },
@@ -272,6 +271,7 @@ var ATBg = {
     var len = ATBg.submissionQueue.length;
     if (len > 0) {
       // Frees up memory because we are calling splice.
+      console.log("Sending cookies to server");
       ATUtils.sendXhr(JSON.stringify(ATBg.submissionQueue.splice(0, len)),
           "cookie");
     }
@@ -503,7 +503,8 @@ var ATBg = {
     if (request.url !== "about:blank" &&
         request.url.indexOf("chrome://extensions") === -1 &&
         request.url.indexOf("127.0.0.1") === -1 &&
-        request.url.indexOf("affiliatetracker") === -1) {
+        request.url.indexOf("affiliatetracker") === -1 &&
+        request.tabId === CrawlUtils.visitTabId) {
       CrawlUtils.crawlVisitRequestsSubmission["requests"].push(request);
     }
   },
@@ -563,6 +564,7 @@ var ATBg = {
       // intermediate URL in the hop chain, so we can't expect status to be 200
       // for it.
       if (ATParse.isUsefulCookie(header.value)) {
+        CrawlUtils.collectedCookieInfo = false;
         if (!sub.merchant) {
           sub.determineAndSetMerchant(response.url);
           console.log("Got merchant from url: ", sub.merchant, response.url);

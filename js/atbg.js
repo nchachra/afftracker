@@ -116,19 +116,18 @@ var ATBg = {
       ATUtils.getLocalStoreObjects().then(function(objects) {
         var cookiesWithFields = new Array();
         cookies.forEach(function(cookie, index) {
-          // Some program cookies should be treated differently.
-          if (cookie.name === "LCLK" || cookie.name === "q") {
-              for (key in objects) {
-                if (key.indexOf("AffiliateTracker_") === 0) {
-                  if (cookie.value === objects[key].cookieValue &&
-                    cookie.domain === objects[key].cookieDomain) {
-                    cookie["merchant"] = key.substring(key.indexOf("_") + 1);
-                    cookie["affiliate"] = objects[key].affiliate;
-                    cookiesWithFields.push(cookie);
-                  }
-                }
+          for (key in objects) {
+            if (key.indexOf("AffiliateTracker_") === 0) {
+              if (cookie.value === objects[key].cookieValue &&
+                  cookie.domain === objects[key].cookieDomain) {
+                cookie["merchant"] = key.substring(key.indexOf("_") + 1);
+                cookie["affiliate"] = objects[key].affiliate;
+                cookiesWithFields.push(cookie);
               }
-          } else if (AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
+            }
+          }
+          if (!cookie.hasOwnProperty("merchant") &&
+            AT_CONSTANTS.cookieAffRe.test(cookie.name + "=" + cookie.value)) {
             var merchant = ATParse.getMerchant("Cookie", [cookie.domain,
                 cookie.name]);
             // We identified an affiliate cookie.

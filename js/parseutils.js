@@ -53,8 +53,9 @@ var ATParse = {
             arg.length;
         var cookieNameValue = arg.substring(0, substringEnd);
         var affId = null;
-        if(cookieNameValue.indexOf("LCLK=") === -1 && //Can't do CJ
-            AT_CONSTANTS.cookieAffRe.test(cookieNameValue)) {
+        if(cookieNameValue.indexOf("LCLK=") === -1 && //Can't do CJ, clickbank
+            AT_CONSTANTS.cookieAffRe.test(cookieNameValue) &&
+            cookieNameValue.indexOf("q=") === -1) {
           cookieNameValue.match(AT_CONSTANTS.cookieAffRe).forEach(
               function(matched, index) {
             if (index !== 0 && typeof matched !== "undefined"
@@ -123,6 +124,10 @@ var ATParse = {
 
     if (cookieName == "LCLK") {
       return "commission junction";
+    }
+
+    if (cookieName == "q" && merchant.indexOf("clickbank.net") != -1) {
+      return "clickbank";
     }
 
     if (merchant.indexOf('.') == 0) {

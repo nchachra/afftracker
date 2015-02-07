@@ -231,6 +231,7 @@ var ATBg = {
    * @param{object} submissionObj Object to be eventually sent to server.
    */
   queueForSubmission: function(submissionObj) {
+    delete ATBg.probableSubmissions[submissionObj["requestId"]];
     ATBg.submissionQueue.push(submissionObj);
     delete ATBg.probableSubmissions[submissionObj["requestId"]];
   },

@@ -21,7 +21,10 @@ var ATPopup = {
       "hidemyass.com", "shareasale.com", "hostgator.com",
       "startlogic.com", "amazon.in", "hosting24.com", "amazon.it",
       "hostmonster.com", "webhostinghub.com", "amazonsupply.com",
-      "hostrocket.com", "webhostingpad.com"],
+      "hostrocket.com", "webhostingpad.com", "clickbank.net", "idev",
+      "WHMCSAffiliateID", "amember_aff_id", "AffiliateWizAffiliateID",
+      "PAPVisitorId",
+      ],
 
 
   /**
@@ -29,33 +32,40 @@ var ATPopup = {
    * are some exceptions. For mrechants that we do not have an icon for, a
    * generic "unknown" image is displayed.
    *
-   * @param{string} merchant The name of merchant.
+   * @param{?string} merchant The name of merchant.
+   * @param{?string} cookieName Name of cookie if merchant doesn't work.
    * @return{string} relative image URL.
    */
-  getImgUrl: function(merchant) {
-    if (merchant.indexOf('buyvip.com') !== -1 ||
+  getImgUrl: function(merchant, cookieName) {
+    if (merchant) {
+      if (merchant.indexOf('buyvip.com') !== -1 ||
         merchant.indexOf('javari') !== -1) {
-      return "icons/" +  merchant.split('.')[0] + ".png";
-    } else if (merchant.indexOf("datahc.com") != -1) {
-      // It's the same program.
-      return "icons/hotelscombined.com.png";
-    } else if (["themeforest.net", "codecanyon.net", "videohive.net",
-        "audiojungle.net", "graphicriver.net", "photodune.net", "3docrean.net",
-        "activeden.net", "envato.com"].indexOf(merchant) != -1) {
-      return "icons/envato.com.png";
-    } else if(merchant.indexOf("shareasale") != -1) {
-      return "icons/shareasale.com.png";
-    } else if(merchant.indexOf("affiliate window") != -1) {
-      return "icons/affiliatewindow.png";
-    } else if (merchant.indexOf("linkshare") != -1) {
-      return "icons/linkshare.png";
-    } else if (merchant.indexOf ("commission junction") != -1) {
-      return "icons/commissionjunction.png";
-    } else if (this.ICONS_AVAILABLE.indexOf(merchant) != -1) {
-      return "icons/" + merchant + ".png";
-    } else {
-      return "";
+        return "icons/" +  merchant.split('.')[0] + ".png";
+      } else if (merchant.indexOf("datahc.com") != -1) {
+        // It's the same program.
+        return "icons/hotelscombined.com.png";
+      } else if (["themeforest.net", "codecanyon.net", "videohive.net",
+          "audiojungle.net", "graphicriver.net", "photodune.net", "3docrean.net",
+          "activeden.net", "envato.com"].indexOf(merchant) != -1) {
+        return "icons/envato.com.png";
+      } else if(merchant.indexOf("shareasale") != -1) {
+        return "icons/shareasale.com.png";
+      } else if(merchant.indexOf("affiliate window") != -1) {
+        return "icons/affiliatewindow.png";
+      } else if (merchant.indexOf("linkshare") != -1) {
+        return "icons/linkshare.png";
+      } else if (merchant.indexOf ("commission junction") != -1) {
+        return "icons/commissionjunction.png";
+      } else if (merchant.indexOf("clickbank") !== -1) {
+        return "icons/clickbank.png";
+      } else if (this.ICONS_AVAILABLE.indexOf(merchant) != -1) {
+        return "icons/" + merchant + ".png";
+      }
     }
+    if (cookieName && this.ICONS_AVAILABLE.indexOf(cookieName) != -1) {
+      return "icons/" + cookieName  + ".png";
+    }
+    return "";
   },
 
 
@@ -122,7 +132,7 @@ var ATPopup = {
 
     var icon = document.createElement("img");
     icon.className = "program-icon"
-    icon.src = ATPopup.getImgUrl(cookie.merchant);
+    icon.src = ATPopup.getImgUrl(cookie.merchant, cookie.name);
     var iconCell = document.createElement('td');
     iconCell.appendChild(icon);
     if (icon.src) {

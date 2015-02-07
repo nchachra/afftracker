@@ -93,7 +93,7 @@ ATSubmission.prototype.setCookie = function(cookie, type, args) {
         resolve("Resolved");
         break;
       case "header":
-        console.assert(cookie.indexOf("=") > 1,
+        console.assert(cookie.indexOf("=") > 0,
             "A valid cookie should have name=value;params");
         console.assert(args instanceof Array && args.length === 1 &&
             typeof args[0] === "string",
@@ -174,7 +174,7 @@ ATSubmission.prototype.determineAndSetMerchant = function(url) {
   // We do our best to get a merchant id. For CJ, the URL containing
   // the affiliate is generally not the same as one that drops cookie.
   if (url !== null && typeof url !== "undefined") {
-    this.merchant = ATParse.getMerchant("URL", [url]);  //amazon
+    this.merchant = ATParse.getMerchant("URL", [url]);  //amazon or clickbank
   }
   if (!this.merchant) {
     this.merchant = ATParse.getMerchant("URL",
@@ -197,14 +197,20 @@ ATSubmission.prototype.determineAndSetMerchant = function(url) {
  */
 ATSubmission.prototype.determineAndSetAffiliate = function(url, header) {
   if (this.merchant &&
-      AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1) {
+      (AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1 ||
+       this.merchant.indexOf("clickbank") !== -1)
+    ) {
     this.affiliate = ATParse.parseAffiliateId(this.merchant, url, "URL");
-  } else if (header.indexOf("LCLK=") === 0) {
+  } else if (header && header.indexOf("LCLK=") === 0) {
     // Commission Junction
     var cjUrl = ATParse.findCJUrlInReqSeq(this.reqRespSeq);
     this.affiliate = ATParse.parseAffiliateId(this.merchant,
       ATParse.findCJUrlInReqSeq(this.reqRespSeq) || "", "URL");
   } else {
+    if (!header) {
+      header = this.cookie.name + "=" + this.cookie.value;
+      console.log("No header suppied, getting affiliate from: ", header);
+    }
     this.affiliate = ATParse.parseAffiliateId(this.merchant, header, "COOKIE");
   }
 };
@@ -212,7 +218,7 @@ ATSubmission.prototype.determineAndSetAffiliate = function(url, header) {
 
 /**
  * We determined affiliate cookie for this object, remove auto-destruct and
- * give it more time to render dom before submitting. We wait 60 more seconds
+ * give it more time to render dom before submitting. We wait 30 more seconds
  * after which the object is submitted irresptive of dom info.
  *
  * @param{function} domTimerCallback Callback function to call with the newly
@@ -226,7 +232,7 @@ ATSubmission.prototype.prolongLife = function(domTimerCallback) {
   this.domTimer = setTimeout(function() {
     delete sub.domTimer;
     domTimerCallback(sub);
-  }, 15000);
+  }, 30000);
 };
 
 

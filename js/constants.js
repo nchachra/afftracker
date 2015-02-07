@@ -75,6 +75,7 @@ AT_CONSTANTS = {
                     "aff_tag",
                     "MERCHANT", //shareAsale
                     "LCLK", //  CJ
+                    "q", // Clickbank
                    ],
 
 
@@ -137,6 +138,9 @@ AT_CONSTANTS = {
 
                   /* Commission Junction */
                   '|((\\/click-\\d+-\\d+)(&.*)?$)',
+
+                  /* Clickbank */
+                  '|(.*\\.hop\\.(clickbank\\.net)\\/.*)',
                 ].join(''), 'i'),
 
   /**
@@ -223,5 +227,8 @@ AT_CONSTANTS = {
 
             // PAPVisitorPro software
             '|(PAPVisitorId=(.*))',
+
+            //Clickbank
+            '|(^q=.*)',
         ].join('')),
 };

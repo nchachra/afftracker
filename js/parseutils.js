@@ -39,7 +39,9 @@ var ATParse = {
       case "URL":
         if (AT_CONSTANTS.AMAZON_SITES.indexOf(merchant) !== -1) {
           return ATParse.parseAffiliateIdFromAmazonURL(arg);
-        } else {
+        } else if (merchant.indexOf("clickbank") !== -1) {
+          return ATParse.parseAffiliateIdFromClickbankUrl(arg);
+        }else {
           return ATParse.parseAffiliateIdFromCJ(arg); //Assume Commission Junction
         };
         break;
@@ -175,6 +177,19 @@ var ATParse = {
           if (matched.indexOf(".") != -1) {
             merchant = matched;
           }
+          if (merchant && merchant.indexOf("clickbank.net") !== -1) {
+            // We can do better, the domain structure is
+            // affiliate.vendor.hop.clickbank.net
+            var affiliate_vendor = merchant.substring(0,
+              merchant.indexOf(".hop"));
+            if (affiliate_vendor.indexOf("-") !== -1) {
+              var vendor = affiliate_vendor.substring(
+                affiliate_vendor.indexOf("-") + 1);
+              merchant = "clickbank (merchant:" + vendor + ")";
+            } else {
+              merchant = "clickbank";
+            }
+          }
           // Unfortunately CJ publisher isn't a domain name, so it's treated
           // differently. The merchant ID is the last bit after -
           //  Sometimes there is & followed by other parameters.
@@ -259,6 +274,25 @@ var ATParse = {
       }
     }
     return null; //default
+  },
+
+  /**
+   * Parses URL for clickbank.net to get affiliate id. The URL is f the form
+   * http://affiliate-vendor.hop.clickbank.net/...
+   *
+   * @param {string} url URL that dropped the cookie
+   * @return {string} affiliate id if found, else null.
+   */
+  parseAffiliateIdFromClickbankUrl: function(url) {
+    var args = url.substring(0, url.indexOf(".hop.clickbank"));
+    if (args.indexOf("-") !== -1) {
+      if (args.indexOf("http://") === 0) {
+        args = args.substring(7);
+      }
+      args = args.substring(0, args.indexOf("-"));
+      return args;
+    }
+    return null;
   },
 
   /**

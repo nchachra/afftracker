@@ -116,10 +116,10 @@ var ATBg = {
       ATUtils.getLocalStoreObjects().then(function(objects) {
         var cookiesWithFields = new Array();
         cookies.forEach(function(cookie, index) {
-          // The program cookies should be treated differently.
-          if (cookie.name === "LCLK") {
+          // Some program cookies should be treated differently.
+          if (cookie.name === "LCLK" || cookie.name === "q") {
               for (key in objects) {
-                if (key.indexOf("AffiliateTracker_commission junction") === 0) {
+                if (key.indexOf("AffiliateTracker_") === 0) {
                   if (cookie.value === objects[key].cookieValue &&
                     cookie.domain === objects[key].cookieDomain) {
                     cookie["merchant"] = key.substring(key.indexOf("_") + 1);
@@ -307,6 +307,7 @@ var ATBg = {
    * @param{object} sub Submission object whose timer fired.
    */
   domTimerCallback: function(sub) {
+    console.log("Dom didn't render, we're submitting anyway", sub);
     ATBg.queueForSubmission(sub);
   },
 
@@ -534,52 +535,38 @@ var ATBg = {
     var cookieHeaders = ATUtils.getHeadersForName(response.responseHeaders,
         "set-cookie");
     cookieHeaders.forEach(function(header) {
-      // For commission junction set-cookie header comes from an intermediate URL
-      // in the hop chain, so we can't expect status to be 200 for it.
+      // For commission junction, and clickbank set-cookie header comes from an
+      // intermediate URL in the hop chain, so we can't expect status to be 200
+      // for it.
       if (ATParse.isUsefulCookie(header.value)) {
         if (!sub.merchant) {
-          console.log("Getting merchant for: ", response.url);
           sub.determineAndSetMerchant(response.url);
-          console.log("Got merchant: ", sub.merchant);
+          console.log("Got merchant from url: ", sub.merchant, response.url);
         }
         if (!sub.affiliate && sub.merchant) {
-          console.log("getting affiliate for: ", response.url, header.value);
           sub.determineAndSetAffiliate(response.url, header.value);
           console.log("got affiliate: ", sub.affiliate);
         }
-        console.log("Gonna read merchant k");
-        if (sub.merchant !== null && sub.merchant.indexOf("commission junction") !== -1) {
-          console.log("Setting up cjpromise with: ", header.value, response.url);
-          if (!sub.hasOwnProperty("cjpromise")) {
-            sub["cjpromise"] = sub.setCookie(header.value, "header", [response.url]);
-          }
-        } else {
-          sub.setCookie(header.value, "header", [response.url]).then(function() {
-            console.log("COokie promise fulfilled", sub, response);
-            if (!sub.merchant) {
-              sub.determineAndSetMerchant(response.url);
-            }
-            if (!sub.affiliate && sub.merchant) {
-              sub.determineAndSetAffiliate(response.url, header.value);
-            }
-            if (sub.affiliate &&
-              response.statusLine &&
-              response.statusLine.indexOf("200") !== -1)
-              console.log("Should be completing this request now; ", sub, response);
-              ATBg.completedRequest(sub, response);
-          });
+        if (!sub.hasOwnProperty("cookie-promise")) {
+          sub["cookie-promise"] = sub.setCookie(header.value, "header", [response.url]);
         }
       }
     });
-    if (sub.merchant &&
-        sub.merchant.indexOf("commission junction") !== -1 &&
-        sub.cjpromise) {
+    if (sub.hasOwnProperty("cookie-promise")) {
       console.log("Going to call promise now: ", response);
-      sub["cjpromise"].then(function() {
+      sub["cookie-promise"].then(function() {
+        if (!sub.merchant) {
+          console.log("Setting merchant");
+          sub.determineAndSetMerchant(sub.cookieUrl);
+        }
+        if (!sub.affiliate && sub.merchant) {
+          console.log("Setting affiliate");
+          sub.determineAndSetAffiliate(sub.cookieUrl,
+            sub.cookie.name + "=" + sub.cookie.value);
+        }
         if (response.statusLine && response.statusLine.indexOf("200") !== -1) {
-          console.log("Going to do horrible things with sub, response ", sub, response);
           ATBg.completedRequest(sub, response);
-          delete sub["cjpromise"];
+          delete sub["cookie-promise"];
         }
       });
     }

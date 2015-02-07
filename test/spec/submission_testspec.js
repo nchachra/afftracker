@@ -1,10 +1,12 @@
 describe ("submission.js tests", function () {
 
+  /**
   //setCookie
   it ("tests setCookie() wrong type", function() {
     var sub = new ATSubmission();
     expect(sub.setCookie("var=value;", "TestType")).not.toBeDefined();
   });
+  */
 
   //initialization
   it ("tests initialization", function() {
@@ -12,6 +14,7 @@ describe ("submission.js tests", function () {
     expect(typeof sub.timestamp).toEqual("number");
   });
 
+  /**
   //setCookie
   it("Tests setCookie() header type", function() {
     var cookie = "variable=value;";
@@ -22,6 +25,7 @@ describe ("submission.js tests", function () {
     expect(sub.cookie.expirationDate).toBe(null);
     expect(sub.cookie.name).toEqual("variable");
   });
+  */
 
   it("Tests setCookie() object type", function() {
     var cookie = {"name": "variable",
@@ -60,6 +64,18 @@ describe ("submission.js tests", function () {
     var sub = new ATSubmission();
     sub.determineAndSetMerchant("www.amazon.com/asfadsfh");
     expect(sub.merchant).toEqual("amazon.com");
+  });
+
+  it("tests determineAndSetMerchant() clickbank", function() {
+    var sub = new ATSubmission();
+    sub.determineAndSetMerchant("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
+    expect(sub.merchant).toEqual("clickbank (merchant:zb75fbfx76z01)");
+  });
+
+  it("tests determineAndSetMerchant() clickbank2", function() {
+    var sub = new ATSubmission();
+    sub.determineAndSetMerchant("http://2ad4eaecdasdfd.hop.clickbank.net/?tid=TRACK1");
+    expect(sub.merchant).toEqual("clickbank");
   });
 
   it("tests determineAndSetMerchant() cj", function() {
@@ -113,6 +129,14 @@ describe ("submission.js tests", function () {
     sub.merchant = "amazon.at";
     sub.determineAndSetAffiliate("http://www.amazon.com/gp/product/?tag=horrible-20", "UserPref=whatver");
     expect(sub.affiliate).toEqual("horrible-20");
+  });
+
+  it("tests determineAndSetAffiliate() clickbank", function() {
+    var sub = new ATSubmission();
+    sub.merchant = "clickbank";
+    sub.determineAndSetAffiliate("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1",
+      "q=whatever");
+    expect(sub.affiliate).toEqual("2ad4eaecd");
   });
 
   it("tests determineAndSetAffiliate() cj", function() {

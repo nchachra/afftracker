@@ -97,6 +97,14 @@ var AffiliateDomCS = {
     info.tagName = el.tagName;
     info.innerHTML = el.innerHTML;
     info.outerHTML = el.outerHTML;
+    var computedStyle = getComputedStyle(el);
+    info.extraStyle = {};
+    if (computedStyle.hasOwnProperty("left")) {
+      info.extraStyle["left"] = computedStyle.left;
+    }
+    if (computedStyle.hasOwnProperty("length")) {
+      info.extraStyle["length"] = computedStyle.length;
+    }
     return info;
   },
 

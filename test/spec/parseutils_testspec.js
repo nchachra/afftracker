@@ -42,6 +42,11 @@ describe("parseutils.js tests", function () {
     expect(merchant).toBe(null);
   });
 
+  it("tests getMerchantFromUrl clickbank merchant", function() {
+    var merchant = ATParse.getMerchantFromUrl("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
+    expect(merchant).toEqual("clickbank (merchant:zb75fbfx76z01)");
+  });
+
 
   it("tests getCookieParameter() domain in cookie ", function() {
     var mockCookie = "Set-Cookie: UserPref=arbitraryvalue+/whateverlettre/asdfjh; path=/; domain=.amazon.com; expires=Tue, 08-Apr-2014 06:22:13 GMT"
@@ -287,6 +292,25 @@ describe("parseutils.js tests", function () {
     expect(aff).toBe(null);
   });
 
+  it("tests parseAffiliateId() clickbank", function() {
+    var aff = ATParse.parseAffiliateId("clickbank",
+      "http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1", "URL");
+    expect(aff).toEqual("2ad4eaecd");
+  });
+
+  it("tests parseAffiliateId() clickbank", function() {
+    var aff = ATParse.parseAffiliateId("clickbank",
+      "2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1", "URL");
+    expect(aff).toEqual("2ad4eaecd");
+  });
+
+  it("tests parseAffiliateId() clickbank 2", function() {
+    var aff = ATParse.parseAffiliateId("clickbank",
+      "http://2ad4eaecdzb75fbfx76z01.hop.clickbank.net/?tid=TRACK1", "URL");
+    expect(aff).toBe(null);
+  });
+
+
   //parseAffiliateIdFromAmazonURL
   it("tests parseAffiliateIdFromAmazonURL() without tag", function() {
     var aff = ATParse.parseAffiliateIdFromAmazonURL(
@@ -400,7 +424,16 @@ describe("parseutils.js tests", function () {
     expect(url).toEqual("http://www.tkqlhce.com/click-2798135-10842761&afsrc=1?sid=benbathandbeyond%2Ecom");
   });
 
+  //parseAffiliateIdFromClickbankUrl
+  it("tests parseAffiliateIdFromClickbankUrl with match", function() {
+    var aff = ATParse.parseAffiliateIdFromClickbankUrl("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
+    expect(aff).toEqual("2ad4eaecd");
+  });
 
+  it("tests parseAffiliateIdFromClickbankUrl with match", function() {
+    var aff = ATParse.parseAffiliateIdFromClickbankUrl("http://2ad4eaecdzb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
+    expect(aff).toBe(null);
+  });
 
 
   //isUsefulCookie
@@ -444,13 +477,18 @@ describe("parseutils.js tests", function () {
     expect(flag).toBe(true);
   });
 
+  it("tests isUsefulCookie()  clickbank 1", function() {
+    var cookie = "q=asdfjkasdhfkjd; path=/; " +
+      "domain=.clickbank.net; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(true);
+  });
 
-
-
-
-
-
-
-
+  it("tests isUsefulCookie()  clickbank 2", function() {
+    var cookie = "assdfq=asdfjkasdhfkjd; path=/; " +
+      "domain=.clickbank.net; expires=Sat, 31-Jan-2015 22:10:51 GMT";
+    var flag = ATParse.isUsefulCookie(cookie);
+    expect(flag).toBe(false);
+  });
 
 });

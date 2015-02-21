@@ -68,15 +68,33 @@ describe ("submission.js tests", function () {
 
   it("tests determineAndSetMerchant() clickbank", function() {
     var sub = new ATSubmission();
+    sub.reqRespSeq = [
+            {
+                "url": "http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1",
+                "statusLine": null,
+                "type": "image",
+                "method": "GET"
+            },
+        ];
+
     sub.determineAndSetMerchant("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
-    expect(sub.merchant).toEqual("clickbank (merchant:zb75fbfx76z01)");
+    expect(sub.merchant).toEqual("clickbank");
   });
 
   it("tests determineAndSetMerchant() clickbank2", function() {
     var sub = new ATSubmission();
+    sub.reqRespSeq = [
+            {
+                "url": "https://ssl.clickbank.net/?tid=TRACK1",
+                "statusLine": null,
+                "type": "image",
+                "method": "GET"
+            },
+        ];
     sub.determineAndSetMerchant("http://2ad4eaecdasdfd.hop.clickbank.net/?tid=TRACK1");
     expect(sub.merchant).toEqual("clickbank");
   });
+
 
   it("tests determineAndSetMerchant() cj", function() {
     var sub = new ATSubmission();
@@ -136,7 +154,7 @@ describe ("submission.js tests", function () {
     sub.merchant = "clickbank";
     sub.determineAndSetAffiliate("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1",
       "q=whatever");
-    expect(sub.affiliate).toEqual("2ad4eaecd");
+    expect(sub.affiliate).toBe(null);
   });
 
   it("tests determineAndSetAffiliate() cj", function() {

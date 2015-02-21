@@ -43,9 +43,37 @@ describe("parseutils.js tests", function () {
   });
 
   it("tests getMerchantFromUrl clickbank merchant", function() {
-    var merchant = ATParse.getMerchantFromUrl("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
-    expect(merchant).toEqual("clickbank (merchant:zb75fbfx76z01)");
+    var merchant = ATParse.getMerchantFromUrl("http://duvetdolla.aismonthly.hop.clickbank.net/hop/?CBRehoppp2=http://www.aissystem.com/split.php?hop=duvetdolla&hstr=1423497547862|duvetdolla||gq7svepwrc|aismonthly&code={0}&key=35AAC1FE&parms=&s=default&ds=0");
+    expect(merchant).toEqual("clickbank (merchant:http://www.aissystem.com/split.php)");
   });
+
+  it("tests getMerchantFromUrl clickbank merchant", function() {
+    var merchant = ATParse.getMerchantFromUrl("http://aanuby.seopressor.hop.clickbank.net/hop/?CBRehoppp2=http://seopressor.com/?hop=aanuby&hstr=1423475462186|aanuby||923ve78bkw|seopressor&code={0}&key=8BBEDD24&parms=&s=default&ds=0");
+    expect(merchant).toEqual("clickbank (merchant:http://seopressor.com/)");
+  });
+
+  it("tests getMerchantFromUrl clickbank merchant", function() {
+    var merchant = ATParse.getMerchantFromUrl("http://0cf346dfc0x0y296yi3zo4f26a.hop.clickbank.net/hop/?C");
+    expect(merchant).toEqual("clickbank");
+  });
+
+  it("tests getMerchantFromUrl clickbank merchant", function() {
+    var merchant = ATParse.getMerchantFromUrl("http://aaaaa.bbbbb.hop.clickbank.net/hop/?C");
+    expect(merchant).toEqual("clickbank (merchant:bbbbb)");
+  });
+
+  it("tests getMerchantFromUrl clickbank merchant", function() {
+    var merchant = ATParse.getMerchantFromUrl("http://ssl.clickbank.net/hop/?C");
+    expect(merchant).toEqual("clickbank");
+  });
+
+  it("tests getMerchantFromUrl clickbank merchant", function() {
+    var merchant = ATParse.getMerchantFromUrl("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
+    expect(merchant).toEqual("clickbank");
+  });
+
+
+
 
 
   it("tests getCookieParameter() domain in cookie ", function() {
@@ -294,14 +322,14 @@ describe("parseutils.js tests", function () {
 
   it("tests parseAffiliateId() clickbank", function() {
     var aff = ATParse.parseAffiliateId("clickbank",
-      "http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1", "URL");
-    expect(aff).toEqual("2ad4eaecd");
+      "http://duvetdolla.aismonthly.hop.clickbank.net/hop/?CBRehoppp2=http://www.aissystem.com/split.php?hop=duvetdolla&hstr=1423497547862|duvetdolla||gq7svepwrc|aismonthly&code={0}&key=35AAC1FE&parms=&s=default&ds=0", "URL");
+    expect(aff).toEqual("duvetdolla");
   });
 
   it("tests parseAffiliateId() clickbank", function() {
     var aff = ATParse.parseAffiliateId("clickbank",
-      "2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1", "URL");
-    expect(aff).toEqual("2ad4eaecd");
+      "http://aanuby.seopressor.hop.clickbank.net/hop/?CBRehoppp2=http://seopressor.com/?hop=aanuby&hstr=1423475462186|aanuby||923ve78bkw|seopressor&code={0}&key=8BBEDD24&parms=&s=default&ds=0", "URL");
+    expect(aff).toEqual("aanuby");
   });
 
   it("tests parseAffiliateId() clickbank 2", function() {
@@ -427,7 +455,7 @@ describe("parseutils.js tests", function () {
   //parseAffiliateIdFromClickbankUrl
   it("tests parseAffiliateIdFromClickbankUrl with match", function() {
     var aff = ATParse.parseAffiliateIdFromClickbankUrl("http://2ad4eaecd-zb75fbfx76z01.hop.clickbank.net/?tid=TRACK1");
-    expect(aff).toEqual("2ad4eaecd");
+    expect(aff).toBe(null);
   });
 
   it("tests parseAffiliateIdFromClickbankUrl with match", function() {

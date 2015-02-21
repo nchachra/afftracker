@@ -31,7 +31,7 @@ ATUtils = {
     }
     // Send
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", uploadUrl);
+    xhr.open("POST", uploadUrl, true);
     // According to http://goo.gl/QA29gY charset need not be specified.
     xhr.setRequestHeader("Content-Type", "application/json;");
     xhr.send(data);

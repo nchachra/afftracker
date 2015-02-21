@@ -243,7 +243,7 @@ ATSubmission.prototype.prolongLife = function(domTimerCallback) {
   this.domTimer = setTimeout(function() {
     delete sub.domTimer;
     domTimerCallback(sub);
-  }, 30000);
+  }, 15000);
 };
 
 

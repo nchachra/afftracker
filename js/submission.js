@@ -173,8 +173,17 @@ ATSubmission.prototype.setAutoDestructTimer = function(requestId) {
 ATSubmission.prototype.determineAndSetMerchant = function(url) {
   // We do our best to get a merchant id. For CJ, the URL containing
   // the affiliate is generally not the same as one that drops cookie.
-  if (url !== null && typeof url !== "undefined") {
-    this.merchant = ATParse.getMerchant("URL", [url]);  //amazon or clickbank
+  if (url !== null && typeof url !== "undefined" &&
+      url.indexOf(".clickbank.net") === -1) {
+    this.merchant = ATParse.getMerchant("URL", [url]);  //amazon
+  }
+  if (!this.merchant && url && url.indexOf(".clickbank.net") !== -1) {
+    // While it is technically possible to grab the affiliate id and
+    // merchant name from cookie url, an intermediate url provides this
+    // information more accurately and reliably.
+    var cbUrl = ATParse.findClickbankUrlInReqSeq(this.reqRespSeq);
+    console.log("clickbank url", cbUrl);
+    this.merchant = ATParse.getMerchant("URL", [cbUrl]);
   }
   if (!this.merchant) {
     this.merchant = ATParse.getMerchant("URL",
@@ -197,15 +206,17 @@ ATSubmission.prototype.determineAndSetMerchant = function(url) {
  */
 ATSubmission.prototype.determineAndSetAffiliate = function(url, header) {
   if (this.merchant &&
-      (AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1 ||
-       this.merchant.indexOf("clickbank") !== -1)
-    ) {
+      (AT_CONSTANTS.AMAZON_SITES.indexOf(this.merchant) != -1)) {
     this.affiliate = ATParse.parseAffiliateId(this.merchant, url, "URL");
   } else if (header && header.indexOf("LCLK=") === 0) {
     // Commission Junction
     var cjUrl = ATParse.findCJUrlInReqSeq(this.reqRespSeq);
     this.affiliate = ATParse.parseAffiliateId(this.merchant,
-      ATParse.findCJUrlInReqSeq(this.reqRespSeq) || "", "URL");
+      cjUrl || "", "URL");
+  } else if (url.indexOf("clickbank.net") !== -1) {
+    var cbUrl = ATParse.findClickbankUrlInReqSeq(this.reqRespSeq);
+    this.affiliate = ATParse.parseAffiliateId(this.merchant,
+        cbUrl || "", "URL");
   } else {
     if (!header) {
       header = this.cookie.name + "=" + this.cookie.value;

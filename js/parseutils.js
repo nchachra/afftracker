@@ -9,7 +9,7 @@ var ATParse = {
    * @return{string} the url matching CJ pattern.
    */
   findCJUrlInReqSeq: function(reqRespSeq) {
-    var re = RegExp('\\/click-\\d+-\\d+(&.*)?$');
+    var re = RegExp('.*\\/click-\\d+-\\d+(&.*)?$');
     var matches = reqRespSeq.filter(function(reqObj) {
         return re.test(reqObj.url);
     });
@@ -18,6 +18,38 @@ var ATParse = {
     } else {
       return null;
     }
+  },
+
+
+  findClickbankUrlInReqSeq: function(reqRespSeq) {
+    // Urls come in 2 flavors, we prefer the first one over second.
+    var re = RegExp('.*\\.hop\\.clickbank\\.net.*\\?CBRehoppp2=.*\\?hop=.*');
+    console.log("trying to find cburl: ", reqRespSeq);
+    var matches = reqRespSeq.filter(function(reqObj) {
+      return re.test(decodeURI(reqObj.url));
+    });
+    if (matches.length > 0) {
+      return decodeURI(matches[0].url);
+    }
+
+    re = RegExp('.*\\..*\\.hop\\.clickbank\\.net.*');
+    matches = reqRespSeq.filter(function(reqObj) {
+      return re.test(reqObj.url);
+    });
+    if (matches.length > 0) {
+      return matches[0].url;
+    }
+
+    // We're hosed in this case, at least we know it's clickbank though.
+    re = RegExp('http.*.clickbank.net.*');
+    matches = reqRespSeq.filter(function(reqObj) {
+      return re.test(reqObj.url);
+    });
+    if(matches.length > 0) {
+      return matches[0].url;
+    }
+
+    return null;
   },
 
 
@@ -41,7 +73,7 @@ var ATParse = {
           return ATParse.parseAffiliateIdFromAmazonURL(arg);
         } else if (merchant.indexOf("clickbank") !== -1) {
           return ATParse.parseAffiliateIdFromClickbankUrl(arg);
-        }else {
+        } else {
           return ATParse.parseAffiliateIdFromCJ(arg); //Assume Commission Junction
         };
         break;
@@ -175,24 +207,34 @@ var ATParse = {
    */
   getMerchantFromUrl: function(url) {
     var merchant = null;
+    console.log("In getmerchantfromurl: ", url);
 
     if(AT_CONSTANTS.UrlRe.test(url)) {
       url.match(AT_CONSTANTS.UrlRe).forEach(function(matched, index) {
         if (index != 0 && typeof matched != "undefined" && merchant === null) {
           if (matched.indexOf(".") != -1) {
             merchant = matched;
+            console.log("matched merchant: ", merchant);
           }
-          if (merchant && merchant.indexOf("clickbank.net") !== -1) {
+          if (merchant && url.indexOf("clickbank.net") !== -1) {
+            merchant = "clickbank";
             // We can do better, the domain structure is
-            // affiliate.vendor.hop.clickbank.net
-            var affiliate_vendor = merchant.substring(0,
-              merchant.indexOf(".hop"));
-            if (affiliate_vendor.indexOf("-") !== -1) {
-              var vendor = affiliate_vendor.substring(
-                affiliate_vendor.indexOf("-") + 1);
-              merchant = "clickbank (merchant:" + vendor + ")";
+            // affiliate-vendor.hop.clickbank.net/?CBRehoppp2=vendor?hop=affiliate&..
+            // (the first part seems to have many different forms, so we use
+            // the second part of the url instead.
+            if (url.indexOf("CBRehoppp2") !== -1) {
+              var sub = url.substring(url.indexOf('CBRehoppp2=') + 11);
+              if (sub.indexOf("?") !== -1) {
+                var vendor = sub.substring(0, sub.indexOf("?"));
+                merchant = "clickbank (merchant:" + vendor + ")";
+              }
             } else {
-              merchant = "clickbank";
+              affiliate_vendor = url.substring(0, url.indexOf(".hop.clickbank.net"));
+              console.log("affiliate_vendor", affiliate_vendor);
+              if (affiliate_vendor.indexOf(".") !== -1) {
+                var vendor = affiliate_vendor.substring(affiliate_vendor.indexOf(".") + 1);
+                merchant = "clickbank (merchant:" + vendor + ")";
+              }
             }
           }
           // Unfortunately CJ publisher isn't a domain name, so it's treated
@@ -289,13 +331,21 @@ var ATParse = {
    * @return {string} affiliate id if found, else null.
    */
   parseAffiliateIdFromClickbankUrl: function(url) {
-    var args = url.substring(0, url.indexOf(".hop.clickbank"));
-    if (args.indexOf("-") !== -1) {
-      if (args.indexOf("http://") === 0) {
-        args = args.substring(7);
+    // affiliate.vendor.hop.clickbank.net/important part
+    // affiliate-vendor.hop.clickbank.net/important part
+    // garbled.hop.clickbank.net/important part
+    // where impoartant part is: ?CBRehoppp2=vendor?hop=affiliate&
+    if (url.indexOf("?CBRehoppp2=") !== -1 && url.indexOf("?hop=") !== -1) {
+      var sub = url.substring(url.indexOf("?hop=") + 5);
+      sub = sub.substring(0, sub.indexOf("&"));
+      return sub;
+    } else {
+      var sub = url.substring(url.indexOf("//") + 2,
+          url.indexOf(".hop.clickbank.net"));
+      if (sub.indexOf(".") !== -1) {
+        sub = sub.substring(0, sub.indexOf("."));
+        return sub;
       }
-      args = args.substring(0, args.indexOf("-"));
-      return args;
     }
     return null;
   },

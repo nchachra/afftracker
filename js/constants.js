@@ -73,7 +73,6 @@ AT_CONSTANTS = {
                     "UserPref",
                     "referring_user",
                     "aff_tag",
-                    "MERCHANT", //shareAsale
                     "LCLK", //  CJ
                     "q", // Clickbank
                    ],
@@ -86,6 +85,7 @@ AT_CONSTANTS = {
    */
   affCookieDomainNames: [".awin1.com", //AffiliateWindow
                          ".linksynergy.com", // LinkSynergy
+                         ".shareasale.com", //shareasale
                         ],
 
  /**
@@ -140,7 +140,7 @@ AT_CONSTANTS = {
                   '|((\\/click-\\d+-\\d+)(&.*)?$)',
 
                   /* Clickbank */
-                  '|(.*\\.hop\\.(clickbank\\.net)\\/.*)',
+                  '|(.*\\.(clickbank\\.net)\\/.*)',
                 ].join(''), 'i'),
 
   /**
@@ -177,7 +177,7 @@ AT_CONSTANTS = {
             '|((referring_user|WHMCSAffiliateID)=(.*))',
             '|((amember_aff_id|a_aid)=(.*))',
             //ShareASale
-            '|(MERCHANT=(.*))',
+            '|(MERCHANT.*=(.*))',
 
             //ipage.com, fatcow.com, startlogic.com, bizland.com, ipower.com:
             //AffCookie=things&stuff&AffID&655061&more&stuff

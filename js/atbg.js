@@ -566,7 +566,8 @@ var ATBg = {
       // for it.
       if (ATParse.isUsefulCookie(header.value)) {
         CrawlUtils.collectedCookieInfo = false;
-        if (!sub.merchant) {
+        if (!sub.merchant && header.value.indexOf("LCLK=") === -1 &&
+            response.url.indexOf(".clickbank.net") === -1) {
           sub.determineAndSetMerchant(response.url);
           console.log("Got merchant from url: ", sub.merchant, response.url);
         }
@@ -583,7 +584,7 @@ var ATBg = {
       console.log("Going to call promise now: ", response);
       sub["cookie-promise"].then(function() {
         if (!sub.merchant) {
-          console.log("Setting merchant");
+          console.log("Setting merchant from cookieUrl", sub.cookieUrl);
           sub.determineAndSetMerchant(sub.cookieUrl);
         }
         if (!sub.affiliate && sub.merchant) {

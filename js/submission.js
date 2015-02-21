@@ -288,6 +288,7 @@ ATSubmission.prototype.highlightDomEls = function(tabId) {
       "frameType": this.culpritContentType,
       "url": this.culpritReqUrl
       };
+  console.log("Getting dom properties");
   ATUtils.getMessageResponse(tabId, message).then(function(response) {
     sub.domEls = response;
     console.log("Highlighting now..");

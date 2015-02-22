@@ -93,18 +93,18 @@ var AffiliateDomCS = {
     }
     info.height = el.height;
     info.width = el.width;
-    info.hidden = el.hidden;
     info.tagName = el.tagName;
-    info.innerHTML = el.innerHTML;
     info.outerHTML = el.outerHTML;
+    var style = '';
     var computedStyle = getComputedStyle(el);
-    info.extraStyle = {};
-    if (computedStyle.hasOwnProperty("left")) {
-      info.extraStyle["left"] = computedStyle.left;
-    }
-    if (computedStyle.hasOwnProperty("length")) {
-      info.extraStyle["length"] = computedStyle.length;
-    }
+    ["margin", "left", "top", "right", "bottom", "position", "zIndex",
+      "visibility", "display"].forEach(function(property) {
+        if (computedStyle.hasOwnProperty(property) &&
+          typeof computedStyle[property] !== "undefined") {
+          style = style + property + ":" + computedStyle[property] + "; ";
+        }
+      });
+    info.style = style;
     return info;
   },
 
@@ -136,10 +136,15 @@ var AffiliateDomCS = {
    * @param{string} type One of {"sub_frame", "image"}
    */
   highlightElement: function(el, type) {
+    var hidden = false;
+    if (el.hidden === true || el.style.display === "none" ||
+                el.style.visibility === "false") {
+      hidden = true;
+    }
     var info = "Affiliate Cookie Info: " +
         " Node type: " + el.tagName +
         "; Dimensions: " + el.width + "," + el.height +
-        "; Visibility: " + el.hidden;
+        "; Visibility: " + hidden;
 
     switch(type) {
       case "sub_frame":

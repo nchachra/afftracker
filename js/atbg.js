@@ -496,9 +496,9 @@ var ATBg = {
   },
 
   /**
-   * Records all requests. When the page completes loading, all the requests
+   * Records all responses. When the page completes loading, all the requests
    * are submitted to server as:
-   *  first_url: [array of request, responses as they occur]
+   *  requests: [[url, status, requestId], ...]
    */
   crawlModeRequestResponseCallback: function(request) {
     if (request.url !== "about:blank" &&
@@ -506,7 +506,8 @@ var ATBg = {
         request.url.indexOf("127.0.0.1") === -1 &&
         request.url.indexOf("affiliatetracker") === -1 &&
         request.tabId === CrawlUtils.visitTabId) {
-      CrawlUtils.crawlVisitRequestsSubmission["requests"].push(request);
+      CrawlUtils.crawlVisitRequestsSubmission["requests"].push(
+          [request.url, request.statusLine, request.requestId]);
     }
   },
 
@@ -533,6 +534,7 @@ var ATBg = {
       //console.log("Partial submission:",  sub);
       ATBg.probableSubmissions[request.requestId] = sub;
       sub.setAutoDestructTimer(request.requestId);
+      sub["crawlDomain"] = CrawlUtils.currentVisitUrl;
     }
     sub.updateReqRespSeq(request);
   },
@@ -565,7 +567,7 @@ var ATBg = {
       // intermediate URL in the hop chain, so we can't expect status to be 200
       // for it.
       if (ATParse.isUsefulCookie(header.value)) {
-        CrawlUtils.collectedCookieInfo = false;
+        CrawlUtils.hasCookie = true;
         if (!sub.merchant && header.value.indexOf("LCLK=") === -1 &&
             response.url.indexOf(".clickbank.net") === -1) {
           sub.determineAndSetMerchant(response.url);

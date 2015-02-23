@@ -58,13 +58,13 @@ CrawlUtils = {
    * The maximum time we'll wait for a page to load before submitting the data.
    * Realistically, we're done a lot sooner than this timeout.
    */
-  visitTimeout: 3 * 60 * 1000,
+  visitTimeout: 1 * 60 * 1000,
 
   /**
    * If we close the page too early, we don't give atbg a chance to collect
    * information.
    */
-  collectedCookieInfo: false,
+  hasCookie: false,
 
   /**
    * If a tab has an onunload event, we can't close th tab. I found no way to
@@ -76,7 +76,7 @@ CrawlUtils = {
 
   initCrawlVisitSubmission: function() {
     return new Promise(function(resolve, reject) {
-      CrawlUtils.collectedCookieInfo = false;
+      CrawlUtils.hasCookie = false;
       CrawlUtils.crawlVisitRequestsSubmission["userId"] = ATBg.userId;
       CrawlUtils.crawlVisitRequestsSubmission["crawlDescription"] = ATInit.crawlDesc;
       CrawlUtils.crawlVisitRequestsSubmission["requests"] = [];
@@ -223,7 +223,6 @@ CrawlUtils = {
         console.log("Put into completedQ ", response);
         // Send this request to server
         var temp  = CrawlUtils.crawlVisitRequestsSubmission["requests"];
-        console.log("Sending crawler data to affiliatetracker", temp);
         CrawlUtils.sendCrawlVisitToServer().then(function() {
           var tabId = CrawlUtils["visitTabId"];
           console.log("Closing tab: ", tabId);
@@ -285,18 +284,29 @@ CrawlUtils = {
 
   sendCrawlVisitToServer: function() {
     return new Promise(function(resolve, reject) {
-      var data = JSON.stringify(CrawlUtils.crawlVisitRequestsSubmission);
-      console.log("Sending visit data to server");
-      //CrawlUtils.sendXhr(data, "crawl-visit").then(function() {
+      if (CrawlUtils.hasCookie) {
+        console.log("There was affiliate cookie, so send request/response seq",
+          CrawlUtils.crawlVisitRequestsSubmission);
+        var data = JSON.stringify(CrawlUtils.crawlVisitRequestsSubmission);
+        console.log("Sending visit data to server");
+        CrawlUtils.sendXhr(data, "crawl-visit").then(function() {
           resolve();
-      //});
+        });
+      } else {
+        console.log("There are no affiliate cookies, not sending requests");
+        resolve();
+      }
     });
   },
 
   sendXhr: function(data, type) {
     return new Promise(function(resolve, reject) {
       var http = new XMLHttpRequest();
-      var url = "http://affiliatetracker.ucsd.edu:5000/upload-crawl-visit";
+      if (ATBg.debug) {
+        var url = "http://affiliatetracker.ucsd.edu:5000/upload-crawl-visit";
+      } else {
+        var url = "http://affiliatetracker.ucsd.edu/upload-crawl-visit";
+      }
       http.open("POST", url, true);
 
       //Send the proper header information along with the request

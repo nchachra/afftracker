@@ -6,8 +6,8 @@ ATInit = {
    * and responses are recorded for a visit.
    */
   crawlMode: true,
-  crawlId: 'crawl-digitalpoint-0',
-  crawlDesc: 'Digitalpoint.com domains for UserPref cookie',
+  crawlId: 'crawl-sameid-0',
+  crawlDesc: 'SameId.net domains',
 
   /**
     * Initialize the extension. Specifically, it relies on the userid creation
@@ -69,9 +69,11 @@ ATInit = {
     // Once the crawl is initialized and bootstrapped, it goes off on its own
     // by calling crawlNextUrl until there are no more domains to be crawled.
     CrawlUtils.initCrawlVisitSubmission().then(function() {;
-      chrome.webRequest.onSendHeaders.addListener(
+      /**
+       chrome.webRequest.onSendHeaders.addListener(
         ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
         ["requestHeaders"]);
+        */
       chrome.webRequest.onHeadersReceived.addListener(
         ATBg.crawlModeRequestResponseCallback, {urls: ["<all_urls>"]},
         ["responseHeaders"]);
